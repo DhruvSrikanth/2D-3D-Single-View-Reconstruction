@@ -10,6 +10,7 @@ from PIL import Image
 import cv2
 from tensorflow.keras.applications.vgg16 import VGG16
 from tqdm.keras import TqdmCallback
+from learning_rate import lr_scheduler
 
 os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 os.environ['TF_FORCE_GPU_ALLOW_GROWTH'] = 'true'
@@ -288,9 +289,28 @@ if __name__ == '__main__':
   # print(len(train_path_list))
   steps_per_epoch = len(train_path_list) // batch_size
 
+#   # fit model
+#   autoencoder_model.fit(dataset, epochs = 5, verbose = 0,
+#                         steps_per_epoch = steps_per_epoch,
+#                         workers = 4,
+#                         use_multiprocessing = True,
+#                         callbacks=[TqdmCallback(verbose=2)])
+
+  # Callbacks
+  callbacks = []
+  # Checkpoint
+  filepath = "saved-model-{epoch:02d}-{val_acc:.2f}.hdf5"
+  checkpoint = tf.keras.callbacks.ModelCheckpoint(filepath, monitor='val_acc', verbose=1, save_best_only=False, save_weights_only=False, mode='max', period = 1)
+  callbacks.append(checkpoint)
+
+  # LR Scheduler
+  callbacks.append(tf.keras.callbacks.LearningRateScheduler(lr_scheduler, verbose=1))
+
   # fit model
-  autoencoder_model.fit(dataset, epochs = 5, verbose = 0,
+  autoencoder_model.fit(dataset, 
+  						          epochs = 5, 
+  						          verbose = 0,
                         steps_per_epoch = steps_per_epoch,
                         workers = 4,
                         use_multiprocessing = True,
-                        callbacks=[TqdmCallback(verbose=2)])
+                        callbacks=callbacks)
