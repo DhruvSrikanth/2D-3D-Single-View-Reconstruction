@@ -4,7 +4,7 @@ import os
 import glob
 import sys
 import numpy as np
-import rgba
+import rgba2rgb as rgba
 import binvox_rw
 from PIL import Image
 import cv2
@@ -15,9 +15,9 @@ os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 os.environ['TF_FORCE_GPU_ALLOW_GROWTH'] = 'true'
 # tf.debugging.set_log_device_placement(True)
 
-TAXONOMY_FILE_PATH    = 'C:\\Users\\bidnu\\Documents\\Suraj_Docs\\Interpolation_2D3D_Project\\Codes\\Pix2Vox\\core\\datasets\\ShapeNet.json'
-RENDERING_PATH        = 'C:\\Users\\bidnu\\Documents\\Suraj_Docs\\Interpolation_2D3D_Project\\Codes\\ShapeNet_P2V\\ShapeNetRendering\\{}\\{}\\rendering'
-VOXEL_PATH            = 'C:\\Users\\bidnu\\Documents\\Suraj_Docs\\Interpolation_2D3D_Project\\Codes\\ShapeNet_P2V\\ShapeNetVox32\\{}\\{}\\model.binvox'
+TAXONOMY_FILE_PATH    = 'C:\\Users\\bidnu\\Documents\\Suraj_Docs\\3D_Project\\ShapeNet+P2V\\ShapeNet.json'
+RENDERING_PATH        = 'C:\\Users\\bidnu\\Documents\\Suraj_Docs\\3D_Project\\ShapeNet_P2V\\ShapeNetRendering\\{}\\{}\\rendering'
+VOXEL_PATH            = 'C:\\Users\\bidnu\\Documents\\Suraj_Docs\\3D_Project\\ShapeNet_P2V\\ShapeNetVox32\\{}\\{}\\model.binvox'
 
 with open(TAXONOMY_FILE_PATH, encoding='utf-8') as file:
   taxonomy_dict = json.loads(file.read())
@@ -242,6 +242,13 @@ def decoder(inp):
   
   return layer5_sigmoid
 
+def scheduler(epoch, lr):
+  decay_rate = 0.5
+  step = 150
+  if epoch % step == 0 and epoch:
+    return lr * decay_rate
+  return lr
+
 if __name__ == '__main__':
   input_shape = (224,224,3)
   input = tf.keras.Input(shape = input_shape,
@@ -276,7 +283,7 @@ if __name__ == '__main__':
   # need to add intersection over union here as metric
 
   #  optimizer
-  opt = tf.keras.optimizers.Adam(learning_rate=0.0001)
+  opt = tf.keras.optimizers.Adam(learning_rate=0.001)
 
   # compile_model
   autoencoder_model.compile(optimizer = opt, loss = loss_fn, metrics = [calc_iou_loss])
@@ -288,9 +295,14 @@ if __name__ == '__main__':
   # print(len(train_path_list))
   steps_per_epoch = len(train_path_list) // batch_size
 
+  # callbacks
+  callbacks = []
+  callbacks.append(TqdmCallback(verbose=2))
+  callbacks.append(tf.keras.callbacks.LearningRateScheduler(scheduler))
+
   # fit model
   autoencoder_model.fit(dataset, epochs = 5, verbose = 0,
                         steps_per_epoch = steps_per_epoch,
                         workers = 4,
                         use_multiprocessing = True,
-                        callbacks=[TqdmCallback(verbose=2)])
+                        callbacks=callbacks)
