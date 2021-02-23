@@ -20,6 +20,8 @@ TAXONOMY_FILE_PATH    = 'C:\\Users\\bidnu\\Documents\\Suraj_Docs\\Interpolation_
 RENDERING_PATH        = 'C:\\Users\\bidnu\\Documents\\Suraj_Docs\\Interpolation_2D3D_Project\\Codes\\ShapeNet_P2V\\ShapeNetRendering\\{}\\{}\\rendering'
 VOXEL_PATH            = 'C:\\Users\\bidnu\\Documents\\Suraj_Docs\\Interpolation_2D3D_Project\\Codes\\ShapeNet_P2V\\ShapeNetVox32\\{}\\{}\\model.binvox'
 
+test_iou = dict()
+
 with open(TAXONOMY_FILE_PATH, encoding='utf-8') as file:
   taxonomy_dict = json.loads(file.read())
 
@@ -39,7 +41,8 @@ def get_xy_paths(taxonomy_dict, mode = 'train'):
           else:
             img_path = os.path.join(RENDERING_PATH.format(taxonomy_dict[i]["taxonomy_id"], sample), value.strip('\n'))
             target_path = VOXEL_PATH.format(taxonomy_dict[i]["taxonomy_id"], sample)
-            path_list.append([img_path, target_path])
+            path_list.append([img_path, target_path, taxonomy_dict[i]["taxonomy_id"]])
+      
   return path_list
 
 # print(sum(temp))
@@ -70,8 +73,21 @@ def calc_iou_loss(y_true, y_pred):
   union = tf.cast(e, dtype = tf.float32)
 
   iou = (intersection / union)
-    
-  return iou
+  
+  # IoU per taxonomy
+  if sample not in test_iou:
+      test_iou[sample] = {'n_samples': 0, 'iou': []}
+  test_iou[sample]['n_samples'] += 1
+  test_iou[sample]['iou'].append(iou)
+  
+  # Mean IoU
+  mean_iou = []
+  for taxonomy_id in test_iou:
+      test_iou[taxonomy_id]['iou'] = np.mean(test_iou[taxonomy_id]['iou'], axis=0)
+      mean_iou.append(test_iou[taxonomy_id]['iou'] * test_iou[taxonomy_id]['n_samples'])
+  mean_iou = np.sum(mean_iou, axis=0) / n_samples
+   
+  return mean_iou
 
 # y_true = np.random.randint(0,2,size=(32, 32, 32)).astype(np.float32)
 # y_pred = np.random.random(size=(32,32,32)).astype(np.float32)
@@ -86,13 +102,18 @@ def tf_data_generator(file_list, batch_size=16):
       np.random.shuffle(file_list)
     else:
       file_chunk = file_list[i*batch_size:(i+1)*batch_size]
+      global img
       img = []
+      global target 
       target = []
+      global sample
+      sample = []
       for file in file_chunk:
         # img_path = file[0].strip('\n')
         # voxel_path = file[1].strip('\n')
         img_path = file[0]
         voxel_path = file[1]
+        class_name = file[2]
 
         rgba_in = Image.open(img_path)
         rgba_in.load()
@@ -107,15 +128,20 @@ def tf_data_generator(file_list, batch_size=16):
 
         img.append(rendering_image)
         target.append(volume)
+        sample.append(class_name)
 
     img = np.asarray(img).reshape(-1,224,224,3).astype(np.float32)
     target = np.asarray(target).reshape(-1,32,32,32).astype(np.float32)
+    sample = np.asarray(sample).reshape(-1,1).astype(np.str)
 
     # print(img.nbytes)
     # print(target.nbytes)
     # print(img.itemsize)
     # print(target.itemsize)
-    yield img, target
+    yield img, target, sample
+    del img
+    del target
+    del sample
     i = i + 1
 
 # x,y = next(tf_data_generator(train_path_list))
