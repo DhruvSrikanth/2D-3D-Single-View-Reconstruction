@@ -347,9 +347,7 @@ if __name__ == '__main__':
 #                         use_multiprocessing = True,
 #                         callbacks=callbacks)
   
-  # TODO: Do we need these as global anymore?
-  global test_iou
-  global mean_iou
+  test_iou = dict()
 
   # TODO: add checkpoint to custom training loop
   num_training_samples = len(train_path_list)
@@ -387,7 +385,6 @@ if __name__ == '__main__':
       iou = calc_iou_loss(y_batch_train, logits)
 
       tax_id = [item for items in tax_id for item in items]
-      test_iou = dict()
       for i in tax_id:
         if i not in test_iou:
           test_iou[i] = {'n_samples': 0, 'iou': []}
@@ -420,7 +417,7 @@ if __name__ == '__main__':
       progBar.update(step*batch_size, values=values)
 
     progBar.update(num_training_samples, values=values, finalize=True)
-       # TODO: check if these values are correct
+
     print(test_iou)
     
     # FOR TRAINING -> Uncomment during actual training
