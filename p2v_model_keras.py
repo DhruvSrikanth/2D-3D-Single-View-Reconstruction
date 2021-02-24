@@ -347,9 +347,9 @@ if __name__ == '__main__':
 #                         use_multiprocessing = True,
 #                         callbacks=callbacks)
   
-  # TODO: Do we need these as global anymore?
-  global test_iou
-  global mean_iou
+  # # TODO: Do we need these as global anymore?
+  # global test_iou
+  # global mean_iou
 
   # TODO: add checkpoint to custom training loop
   num_training_samples = len(train_path_list)
@@ -387,6 +387,8 @@ if __name__ == '__main__':
       iou = calc_iou_loss(y_batch_train, logits)
 
       tax_id = [item for items in tax_id for item in items]
+
+      # TODO: for some reason test_iou has to be defined here itself otherwise getting an error. Check
       test_iou = dict()
       for i in tax_id:
         if i not in test_iou:
@@ -398,16 +400,34 @@ if __name__ == '__main__':
       mean_iou = []
       for taxonomy_id in test_iou:
         test_iou[taxonomy_id]['iou'] = np.mean(test_iou[taxonomy_id]['iou'], axis=0)
+      
+      mean_class_iou = []
+      for taxonomy_id in test_iou:
+        mean_class_iou.append(test_iou[taxonomy_id]['iou'])
+      # mean_class_iou = json.loads(mean_class_iou) #JSONify the mean iou list containing mean iou for each class
+      mean_class_iou = json.dumps(mean_class_iou) #JSONify the mean iou list containing mean iou for each class
 
       # TODO: not able to access the test_iou or mean_iou variables even though they are global. Check
       values=[('train_loss',loss_value),('IoU_metric',iou)]
 
       # the if loop is just for dubugging purposes
-      if step*batch_size == 500:
-        break
+      # if step*batch_size == 500:
+      #   break
+      
+      # FOR TESTING -> Uncomment next if clause to check if the model can be saved and loaded
+      if step % 500 == 0:
+        print("[STEP = %d] --> [TRAINING LOSS = %.4f] --> [TRAINING IOU = %s]" % (step, float(loss_value), mean_class_iou))
+        file_path = 'ae_model_step_{}.h5'.format(step)
+        tf.keras.models.save_model(model = autoencoder_model, filepath = file_path, overwrite = False, include_optimizer = True)
+
       progBar.update(step*batch_size, values=values)
 
     progBar.update(num_training_samples, values=values, finalize=True)
 
-    # TODO: check if these values are correct
     print(test_iou)
+    
+    # FOR TRAINING -> Uncomment during actual training
+#   if epoch % 10 == 0:
+#   	print("[EPOCH = %d] --> [TRAINING LOSS = %.4f] --> [TRAINING IOU = %s]" % (epoch, float(loss_value), mean_class_iou))
+#   	file_path = 'ae_model_epoch_{}.h5'.format(epoch)
+#   	tf.keras.models.save_model(model = autoencoder_model, filepath = file_path, overwrite = False, include_optimizer = True)
