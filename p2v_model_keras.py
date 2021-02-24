@@ -410,14 +410,21 @@ if __name__ == '__main__':
       # the if loop is just for dubugging purposes
       # if step*batch_size == 500:
       #   break
+      
+      # FOR TESTING -> Uncomment next if clause to check if the model can be saved and loaded
+      if step % 10 == 0:
+        print("[STEP = %d] --> [TRAINING LOSS = %.4f] --> [TRAINING IOU = %s]" % (step, float(loss_value), mean_class_iou))
+        file_path = 'ae_model_step_{}.h5'.format(step)
+        tf.keras.models.save_model(model = autoencoder_model, filepath = file_path, overwrite = False, include_optimizer = True)
 
       progBar.update(step*batch_size, values=values)
 
     progBar.update(num_training_samples, values=values, finalize=True)
        # TODO: check if these values are correct
     print(test_iou)
-
-  if epoch % 10 == 0:
-  	print("[EPOCH = %d] --> [TRAINING LOSS = %.4f] --> [TRAINING IOU = %s]" % (epoch, float(loss_value), mean_class_iou))
-  	file_path = 'ae_model_epoch_{}.h5'.format(epoch)
-  	tf.keras.models.save_model(model = autoencoder_model, filepath = file_path, overwrite = False, include_optimizer = True)
+    
+    # FOR TRAINING -> Uncomment during actual training
+#   if epoch % 10 == 0:
+#   	print("[EPOCH = %d] --> [TRAINING LOSS = %.4f] --> [TRAINING IOU = %s]" % (epoch, float(loss_value), mean_class_iou))
+#   	file_path = 'ae_model_epoch_{}.h5'.format(epoch)
+#   	tf.keras.models.save_model(model = autoencoder_model, filepath = file_path, overwrite = False, include_optimizer = True)
