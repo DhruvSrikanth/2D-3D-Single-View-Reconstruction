@@ -398,6 +398,11 @@ if __name__ == '__main__':
       mean_iou = []
       for taxonomy_id in test_iou:
         test_iou[taxonomy_id]['iou'] = np.mean(test_iou[taxonomy_id]['iou'], axis=0)
+      
+      mean_class_iou = []
+      for taxonomy_id in test_iou:
+        mean_class_iou.append(test_iou[taxonomy_id]['iou'])
+      mean_class_iou = json.loads(mean_class_iou) #JSONify the mean iou list containing mean iou for each class
 
       # TODO: not able to access the test_iou or mean_iou variables even though they are global. Check
       values=[('train_loss',loss_value),('IoU_metric',iou)]
@@ -413,6 +418,6 @@ if __name__ == '__main__':
     print(test_iou)
 
   if epoch % 10 == 0:
-  	print("[EPOCH = %d] --> [TRAINING LOSS = %.4f] --> [TRAINING IOU = %.4f]" % (epoch, float(loss_value), float(iou)))
+  	print("[EPOCH = %d] --> [TRAINING LOSS = %.4f] --> [TRAINING IOU = %s]" % (epoch, float(loss_value), mean_class_iou))
   	file_path = 'ae_model_epoch_{}.h5'.format(epoch)
   	tf.keras.models.save_model(model = autoencoder_model, filepath = file_path, overwrite = False, include_optimizer = True)
