@@ -114,10 +114,10 @@ def pure_pil_alpha_to_color_v2(image, color=(255, 255, 255)):
 # res = alpha_composite_with_color("00.png")
 # print(res.shape)
 
-png = Image.open("00.png")
-png.load() # required for png.split()
+# png = Image.open("00.png")
+# png.load() # required for png.split()
 
-background = Image.new("RGB", png.size, (255, 255, 255))
-background.paste(png, mask=png.split()[3]) # 3 is the alpha channel
+# background = Image.new("RGB", png.size, (255, 255, 255))
+# background.paste(png, mask=png.split()[3]) # 3 is the alpha channel
 
-background.save('foo.jpg', 'JPEG', quality=100)
+# background.save('foo.jpg', 'JPEG', quality=100)
