@@ -4,7 +4,7 @@ import os
 import glob
 import sys
 import numpy as np
-import rgba
+import rgba2rgb as rgba
 import binvox_rw
 from PIL import Image
 import cv2
@@ -16,11 +16,12 @@ os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 os.environ['TF_FORCE_GPU_ALLOW_GROWTH'] = 'true'
 # tf.debugging.set_log_device_placement(True)
 
-TAXONOMY_FILE_PATH    = 'C:\\Users\\bidnu\\Documents\\Suraj_Docs\\Interpolation_2D3D_Project\\Codes\\Pix2Vox\\core\\datasets\\ShapeNet.json'
-RENDERING_PATH        = 'C:\\Users\\bidnu\\Documents\\Suraj_Docs\\Interpolation_2D3D_Project\\Codes\\ShapeNet_P2V\\ShapeNetRendering\\{}\\{}\\rendering'
-VOXEL_PATH            = 'C:\\Users\\bidnu\\Documents\\Suraj_Docs\\Interpolation_2D3D_Project\\Codes\\ShapeNet_P2V\\ShapeNetVox32\\{}\\{}\\model.binvox'
+TAXONOMY_FILE_PATH    = 'C:\\Users\\bidnu\\Documents\\Suraj_Docs\\3D_Project\\ShapeNet_P2V\\ShapeNet.json'
+RENDERING_PATH        = 'C:\\Users\\bidnu\\Documents\\Suraj_Docs\\3D_Project\\ShapeNet_P2V\\ShapeNetRendering\\{}\\{}\\rendering'
+VOXEL_PATH            = 'C:\\Users\\bidnu\\Documents\\Suraj_Docs\\3D_Project\\ShapeNet_P2V\\ShapeNetVox32\\{}\\{}\\model.binvox'
 
-test_iou = dict()
+# global test_iou
+# global mean_iou
 
 with open(TAXONOMY_FILE_PATH, encoding='utf-8') as file:
   taxonomy_dict = json.loads(file.read())
@@ -45,14 +46,11 @@ def get_xy_paths(taxonomy_dict, mode = 'train'):
       
   return path_list
 
-# print(sum(temp))
-# for i in train_path_list[20:30]:
-#   print(i)
 train_path_list = get_xy_paths(taxonomy_dict = taxonomy_dict, mode = 'train')
-print(sys.getsizeof(train_path_list), "bytes")
-print(len(train_path_list))
-train_path_list = np.asarray(train_path_list)
-print("------------------------------------------------------------------------")
+# print(sys.getsizeof(train_path_list), "bytes")
+# print(len(train_path_list))
+# train_path_list = np.asarray(train_path_list)
+# print("------------------------------------------------------------------------")
 
 #Implementation 1 (correct)
 def calc_iou_loss(y_true, y_pred):
@@ -75,19 +73,23 @@ def calc_iou_loss(y_true, y_pred):
   iou = (intersection / union)
   
   # IoU per taxonomy
-  if sample not in test_iou:
-      test_iou[sample] = {'n_samples': 0, 'iou': []}
-  test_iou[sample]['n_samples'] += 1
-  test_iou[sample]['iou'].append(iou)
+  # test_iou = dict()
+  # for i in sample:
+  #   if i not in test_iou:
+  #     test_iou[i] = {'n_samples': 0, 'iou': []}
+  #   test_iou[i]['n_samples'] += 1
+  #   test_iou[i]['iou'].append(iou.numpy().tolist())
   
-  # Mean IoU
-  mean_iou = []
-  for taxonomy_id in test_iou:
-      test_iou[taxonomy_id]['iou'] = np.mean(test_iou[taxonomy_id]['iou'], axis=0)
-      mean_iou.append(test_iou[taxonomy_id]['iou'] * test_iou[taxonomy_id]['n_samples'])
-  mean_iou = np.sum(mean_iou, axis=0) / n_samples
+  # # Mean IoU
+  # mean_iou = []
+  # for taxonomy_id in test_iou:
+  #   test_iou[taxonomy_id]['iou'] = np.mean(test_iou[taxonomy_id]['iou'], axis=0)
+    # mean_iou.append(test_iou[taxonomy_id]['iou'] * test_iou[taxonomy_id]['n_samples'])
+
+  # TODO: n_samples not defined. Check
+  # mean_iou = np.sum(mean_iou, axis=0) / n_samples
    
-  return mean_iou
+  return iou
 
 # y_true = np.random.randint(0,2,size=(32, 32, 32)).astype(np.float32)
 # y_pred = np.random.random(size=(32,32,32)).astype(np.float32)
@@ -132,16 +134,16 @@ def tf_data_generator(file_list, batch_size=16):
 
     img = np.asarray(img).reshape(-1,224,224,3).astype(np.float32)
     target = np.asarray(target).reshape(-1,32,32,32).astype(np.float32)
-    sample = np.asarray(sample).reshape(-1,1).astype(np.str)
+    sample = np.asarray(sample).reshape(-1,1).astype(str)
 
     # print(img.nbytes)
     # print(target.nbytes)
     # print(img.itemsize)
     # print(target.itemsize)
     yield img, target, sample
-    del img
-    del target
-    del sample
+    # del img
+    # del target
+    # del sample
     i = i + 1
 
 # x,y = next(tf_data_generator(train_path_list))
@@ -219,7 +221,6 @@ def encoder(inp, input_shape=(224,224,3)):
   return layer12_elu
 
 def decoder(inp):
-  # inp = tf.keras.layers.Reshape((2,2,2,256))(inp)
   layer1 = tf.keras.layers.Convolution3DTranspose(filters=128,
                                                   kernel_size=4,
                                                   strides=(2,2,2),
@@ -265,25 +266,28 @@ def decoder(inp):
                                                   use_bias=False,
                                                   name="Conv3D_5")(layer4_relu)
   layer5_sigmoid = tf.keras.activations.sigmoid(layer5,
-                                                name="layer5_sigmoid")
+                                              name="layer5_sigmoid")
+
+  # TODO: check this statement
+  layer5_sigmoid = tf.keras.layers.Reshape((32,32,32))(layer5_sigmoid)
   
   return layer5_sigmoid
 
 if __name__ == '__main__':
-  input_shape = (224,224,3)
+  input_shape = (224, 224, 3)
   input = tf.keras.Input(shape = input_shape,
-                          name = "input_layer")
-  encoder_model = tf.keras.Model(input, encoder(input), name="encoder")
+                        name = "input_layer")
+  encoder_model = tf.keras.Model(input, encoder(input), name = "encoder")
   # encoder_model.summary()
-  batch_size = 2
+  batch_size = 1
   # print(keras_model_memory_usage_in_bytes(encoder_model, batch_size))
   print("-------------------------")
 
-  decoder_input = tf.keras.Input(shape=(2,2,2,256),
-                        name="decoder_input")
+  decoder_input = tf.keras.Input(shape=(2, 2, 2, 256),
+                                name = "decoder_input")
 
-  decoder_model = tf.keras.Model(decoder_input, decoder(decoder_input), name="decoder")
-  #decoder_model.summary()
+  decoder_model = tf.keras.Model(decoder_input, decoder(decoder_input), name = "decoder")
+  # decoder_model.summary()
   # print(keras_model_memory_usage_in_bytes(decoder_model, batch_size))
   print("-------------------------")
 
@@ -296,47 +300,114 @@ if __name__ == '__main__':
   autoencoder_model.summary()
 
   # Loss function
-  loss_fn = tf.keras.losses.BinaryCrossentropy()
+  loss_fn = tf.keras.losses.BinaryCrossentropy(from_logits = True)
 
   # Metric
   # metric = tf.keras.metrics.BinaryCrossentropy(name="binary_crossentropy")
   # need to add intersection over union here as metric
 
   #  optimizer
-  opt = tf.keras.optimizers.Adam(learning_rate=0.0001)
+  # TODO: Add learning rate scheduler to custom training loop
+  opt = tf.keras.optimizers.Adam()
 
-  # compile_model
-  autoencoder_model.compile(optimizer = opt, loss = loss_fn, metrics = [calc_iou_loss])
+#   # compile_model
+#   autoencoder_model.compile(optimizer = opt, loss = loss_fn, metrics = [calc_iou_loss])
   
-  dataset = tf.data.Dataset.from_generator(tf_data_generator,args= [train_path_list, batch_size],
-                                          output_types = (tf.float32, tf.float32),
-                                          output_shapes = ((None,224,224,3),(None,32,32,32)))
+  # TODO: third output shape not defined properly. Check. Related to IoU calculation
+  train_dataset = tf.data.Dataset.from_generator(tf_data_generator,args= [train_path_list, batch_size],
+                                          output_types = (tf.float32, tf.float32, tf.string),
+                                          output_shapes = ((None, 224, 224, 3),(None, 32, 32, 32),(None, 1)))
+  train_dataset.prefetch(tf.data.AUTOTUNE)
+#   # print(len(train_path_list))
+#   steps_per_epoch = len(train_path_list) // batch_size
 
-  # print(len(train_path_list))
-  steps_per_epoch = len(train_path_list) // batch_size
+# #   # fit model
+# #   autoencoder_model.fit(dataset, epochs = 5, verbose = 0,
+# #                         steps_per_epoch = steps_per_epoch,
+# #                         workers = 4,
+# #                         use_multiprocessing = True,
+# #                         callbacks=[TqdmCallback(verbose=2)])
+
+#   # Callbacks
+#   callbacks = []
+#   # Checkpoint
+#   filepath = "saved-model-{epoch:02d}-{val_acc:.2f}.hdf5"
+#   checkpoint = tf.keras.callbacks.ModelCheckpoint(filepath, monitor='val_acc', verbose=1, save_best_only=False, save_weights_only=False, mode='max', period = 1)
+#   callbacks.append(checkpoint)
+
+#   # LR Scheduler
+#   callbacks.append(tf.keras.callbacks.LearningRateScheduler(lr_scheduler, verbose=1))
 
 #   # fit model
-#   autoencoder_model.fit(dataset, epochs = 5, verbose = 0,
+#   autoencoder_model.fit(dataset, 
+#   						          epochs = 5, 
+#   						          verbose = 0,
 #                         steps_per_epoch = steps_per_epoch,
 #                         workers = 4,
 #                         use_multiprocessing = True,
-#                         callbacks=[TqdmCallback(verbose=2)])
+#                         callbacks=callbacks)
+  
+  # TODO: Do we need these as global anymore?
+  global test_iou
+  global mean_iou
 
-  # Callbacks
-  callbacks = []
-  # Checkpoint
-  filepath = "saved-model-{epoch:02d}-{val_acc:.2f}.hdf5"
-  checkpoint = tf.keras.callbacks.ModelCheckpoint(filepath, monitor='val_acc', verbose=1, save_best_only=False, save_weights_only=False, mode='max', period = 1)
-  callbacks.append(checkpoint)
+  # TODO: add checkpoint to custom training loop
+  num_training_samples = len(train_path_list)
+  epochs = 2
+  for epoch in range(1, epochs+1):
+    print("\nepoch {}/{}".format(epoch + 1,epochs))
 
-  # LR Scheduler
-  callbacks.append(tf.keras.callbacks.LearningRateScheduler(lr_scheduler, verbose=1))
+    progBar = tf.keras.utils.Progbar(num_training_samples, stateful_metrics=['loss_fn'])
 
-  # fit model
-  autoencoder_model.fit(dataset, 
-  						          epochs = 5, 
-  						          verbose = 0,
-                        steps_per_epoch = steps_per_epoch,
-                        workers = 4,
-                        use_multiprocessing = True,
-                        callbacks=callbacks)
+    # Iterate over the batches of the dataset.
+    for step, (x_batch_train, y_batch_train, tax_id) in enumerate(train_dataset):
+      tax_id = tax_id.numpy().tolist()
+
+      # Open a GradientTape to record the operations run
+      # during the forward pass, which enables auto-differentiation.
+      with tf.GradientTape() as tape:
+
+        # Run the forward pass of the layer.
+        # The operations that the layer applies
+        # to its inputs are going to be recorded
+        # on the GradientTape.
+        logits = autoencoder_model(x_batch_train, training = True)  # Logits for this minibatch
+
+        # Compute the loss value for this minibatch.
+        loss_value = loss_fn(y_batch_train, logits)
+
+      # Use the gradient tape to automatically retrieve
+      # the gradients of the trainable variables with respect to the loss.
+      grads = tape.gradient(loss_value, autoencoder_model.trainable_weights)
+
+      # Run one step of gradient descent by updating
+      # the value of the variables to minimize the loss.
+      opt.apply_gradients(zip(grads, autoencoder_model.trainable_weights))
+
+      iou = calc_iou_loss(y_batch_train, logits)
+
+      tax_id = [item for items in tax_id for item in items]
+      test_iou = dict()
+      for i in tax_id:
+        if i not in test_iou:
+          test_iou[i] = {'n_samples': 0, 'iou': []}
+        test_iou[i]['n_samples'] += 1
+        test_iou[i]['iou'].append(iou.numpy().tolist())
+      
+      # Mean IoU
+      mean_iou = []
+      for taxonomy_id in test_iou:
+        test_iou[taxonomy_id]['iou'] = np.mean(test_iou[taxonomy_id]['iou'], axis=0)
+
+      # TODO: not able to access the test_iou or mean_iou variables even though they are global. Check
+      values=[('train_loss',loss_value),('IoU_metric',iou)]
+
+      # the if loop is just for dubugging purposes
+      if step*batch_size == 500:
+        break
+      progBar.update(step*batch_size, values=values)
+
+    progBar.update(num_training_samples, values=values, finalize=True)
+
+    # TODO: check if these values are correct
+    print(test_iou)
