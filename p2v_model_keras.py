@@ -403,11 +403,16 @@ if __name__ == '__main__':
       values=[('train_loss',loss_value),('IoU_metric',iou)]
 
       # the if loop is just for dubugging purposes
-      if step*batch_size == 500:
-        break
+      # if step*batch_size == 500:
+      #   break
+
       progBar.update(step*batch_size, values=values)
 
     progBar.update(num_training_samples, values=values, finalize=True)
-
-    # TODO: check if these values are correct
+       # TODO: check if these values are correct
     print(test_iou)
+
+  if epoch % 10 == 0:
+  	print("[EPOCH = %d] --> [TRAINING LOSS = %.4f] --> [TRAINING IOU = %.4f]" % (epoch, float(loss_value), float(iou)))
+  	file_path = 'ae_model_epoch_{}.h5'.format(epoch)
+  	tf.keras.models.save_model(model = autoencoder_model, filepath = file_path, overwrite = False, include_optimizer = True)
