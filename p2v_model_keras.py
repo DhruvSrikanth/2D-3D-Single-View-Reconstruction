@@ -319,10 +319,12 @@ if __name__ == '__main__':
   # TODO: add checkpoint to custom training loop
   num_training_samples = len(train_path_list_sample)
   epochs = 4
-  test_iou = dict()
+  
   for epoch in range(epochs):
     print("\nepoch {}/{}".format(epoch + 1,epochs))
     learning_rate = learning_rate_fn(epoch)
+
+    test_iou = dict()
 
     progBar = tf.keras.utils.Progbar(num_training_samples, stateful_metrics=['loss_fn'], verbose=1)
 
@@ -369,7 +371,6 @@ if __name__ == '__main__':
 
           test_iou[j] = {'n_samples': 0, 'iou': 0.0}
 
-        # TODO: the counting of n_samples doesn't reset to 0 after an epoch, so check this also
         test_iou[j]['n_samples'] += 1
         test_iou[j]['iou'] += iou[i]
       
