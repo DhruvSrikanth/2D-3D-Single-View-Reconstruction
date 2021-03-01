@@ -43,7 +43,7 @@ def get_xy_paths(taxonomy_dict, mode = 'train'):
   return path_list
 
 train_path_list = get_xy_paths(taxonomy_dict = taxonomy_dict, mode = 'train')
-train_path_list_sample = train_path_list[:500] + train_path_list[-500:] # just for testing purposes
+train_path_list_sample = train_path_list[:100] + train_path_list[-100:] # just for testing purposes
 
 #Implementation 1 (correct)
 # TODO: the output of this function for some reason cannot be appended to a list in the trianing loop
@@ -164,102 +164,101 @@ def tf_data_generator2(file_list):
 
     yield rendering_image, volume, tax_id
 
-def encoder(inp, input_shape=(224,224,3)):
-  vgg = VGG16(include_top = False,
-              weights = "imagenet",
-              input_shape = input_shape,
-              pooling = "none")
-  
-  vgg.trainable = False
-  
-  part_vgg = tf.keras.models.Model(inputs = vgg.input,
-                                  outputs = vgg.get_layer(name="block4_conv2").output,
-                                  name = "part_vgg")
-  
-  # https://keras.io/guides/transfer_learning/
-  x = part_vgg(inputs = inp,
-              training=False)
+def build_autoencoder(input_shape = (224, 224, 3)):
+  def encoder(inp, input_shape=(224,224,3)):
+    vgg = VGG16(include_top = False,
+                weights = "imagenet",
+                input_shape = input_shape,
+                pooling = "none")
+    
+    vgg.trainable = False
+    
+    part_vgg = tf.keras.models.Model(inputs = vgg.input,
+                                    outputs = vgg.get_layer(name="block4_conv2").output,
+                                    name = "part_vgg")
+    
+    # https://keras.io/guides/transfer_learning/
+    x = part_vgg(inputs = inp,
+                training=False)
 
-  layer10 = tf.keras.layers.Conv2D(filters = 512,
-                                  kernel_size = 1,
-                                  name = "conv10")(x) # for pix2vox-A(large), kernel_size is 3
-  layer10_norm = tf.keras.layers.BatchNormalization(name="layer10_norm")(layer10)
-  layer10_elu = tf.keras.activations.elu(layer10_norm,
-                                        name="layer10_elu")
+    layer10 = tf.keras.layers.Conv2D(filters = 512,
+                                    kernel_size = 1,
+                                    name = "conv10")(x) # for pix2vox-A(large), kernel_size is 3
+    layer10_norm = tf.keras.layers.BatchNormalization(name="layer10_norm")(layer10)
+    layer10_elu = tf.keras.activations.elu(layer10_norm,
+                                          name="layer10_elu")
 
-  layer11 = tf.keras.layers.Conv2D(filters = 256,
-                                  kernel_size = 3,
-                                  name = "conv11")(layer10_elu) # for pix2vox-A(large), filters is 512
-  layer11_norm = tf.keras.layers.BatchNormalization(name="layer11_norm")(layer11)
-  layer11_elu = tf.keras.activations.elu(layer11_norm,
-                                        name="layer11_elu")
-  layer11_pool = tf.keras.layers.MaxPooling2D(pool_size = (4,4),
-                                              name="layer11_pool")(layer11_elu) # for pix2vox-A(large), kernel size is 3
+    layer11 = tf.keras.layers.Conv2D(filters = 256,
+                                    kernel_size = 3,
+                                    name = "conv11")(layer10_elu) # for pix2vox-A(large), filters is 512
+    layer11_norm = tf.keras.layers.BatchNormalization(name="layer11_norm")(layer11)
+    layer11_elu = tf.keras.activations.elu(layer11_norm,
+                                          name="layer11_elu")
+    layer11_pool = tf.keras.layers.MaxPooling2D(pool_size = (4,4),
+                                                name="layer11_pool")(layer11_elu) # for pix2vox-A(large), kernel size is 3
 
-  layer12 = tf.keras.layers.Conv2D(filters = 128,
-                                  kernel_size = 3,
-                                  name = "conv12")(layer11_pool) # for pix2vox-A(large), filters is 256, kernel_size is 1
-  layer12_norm = tf.keras.layers.BatchNormalization(name="layer12_norm")(layer12)
-  layer12_elu = tf.keras.activations.elu(layer12_norm,
-                                        name="layer12_elu")
+    layer12 = tf.keras.layers.Conv2D(filters = 128,
+                                    kernel_size = 3,
+                                    name = "conv12")(layer11_pool) # for pix2vox-A(large), filters is 256, kernel_size is 1
+    layer12_norm = tf.keras.layers.BatchNormalization(name="layer12_norm")(layer12)
+    layer12_elu = tf.keras.activations.elu(layer12_norm,
+                                          name="layer12_elu")
 
-  return layer12_elu
+    return layer12_elu
 
-def decoder(inp):
-  layer1 = tf.keras.layers.Convolution3DTranspose(filters=128,
-                                                  kernel_size=4,
-                                                  strides=(2,2,2),
-                                                  padding="same",
-                                                  use_bias=False,
-                                                  name="Conv3D_1")(inp)
-  layer1_norm = tf.keras.layers.BatchNormalization(name="layer1_norm")(layer1)
-  layer1_relu = tf.keras.activations.relu(layer1_norm,
-                                          name="layer1_relu")
-  
-  layer2 = tf.keras.layers.Convolution3DTranspose(filters=64,
-                                                  kernel_size=4,
-                                                  strides=(2,2,2),
-                                                  padding="same",
-                                                  use_bias=False,
-                                                  name="Conv3D_2")(layer1_relu)
-  layer2_norm = tf.keras.layers.BatchNormalization(name="layer2_norm")(layer2)
-  layer2_relu = tf.keras.activations.relu(layer2_norm,
-                                          name="layer2_relu")
-  
-  layer3 = tf.keras.layers.Convolution3DTranspose(filters=32,
-                                                  kernel_size=4,
-                                                  strides=(2,2,2),
-                                                  padding="same",
-                                                  use_bias=False,
-                                                  name="Conv3D_3")(layer2_relu)
-  layer3_norm = tf.keras.layers.BatchNormalization(name="layer3_norm")(layer3)
-  layer3_relu = tf.keras.activations.relu(layer3_norm,
-                                          name="layer3_relu")
-  
-  layer4 = tf.keras.layers.Convolution3DTranspose(filters=8,
-                                                  kernel_size=4,
-                                                  strides=(2,2,2),
-                                                  padding="same",
-                                                  use_bias=False,
-                                                  name="Conv3D_4")(layer3_relu)
-  layer4_norm = tf.keras.layers.BatchNormalization(name="layer4_norm")(layer4)
-  layer4_relu = tf.keras.activations.relu(layer4_norm,
-                                          name="layer4_relu")
-  
-  layer5 = tf.keras.layers.Convolution3DTranspose(filters=1,
-                                                  kernel_size=1,
-                                                  use_bias=False,
-                                                  name="Conv3D_5")(layer4_relu)
-  layer5_sigmoid = tf.keras.activations.sigmoid(layer5,
-                                              name="layer5_sigmoid")
+  def decoder(inp):
+    layer1 = tf.keras.layers.Convolution3DTranspose(filters=128,
+                                                    kernel_size=4,
+                                                    strides=(2,2,2),
+                                                    padding="same",
+                                                    use_bias=False,
+                                                    name="Conv3D_1")(inp)
+    layer1_norm = tf.keras.layers.BatchNormalization(name="layer1_norm")(layer1)
+    layer1_relu = tf.keras.activations.relu(layer1_norm,
+                                            name="layer1_relu")
+    
+    layer2 = tf.keras.layers.Convolution3DTranspose(filters=64,
+                                                    kernel_size=4,
+                                                    strides=(2,2,2),
+                                                    padding="same",
+                                                    use_bias=False,
+                                                    name="Conv3D_2")(layer1_relu)
+    layer2_norm = tf.keras.layers.BatchNormalization(name="layer2_norm")(layer2)
+    layer2_relu = tf.keras.activations.relu(layer2_norm,
+                                            name="layer2_relu")
+    
+    layer3 = tf.keras.layers.Convolution3DTranspose(filters=32,
+                                                    kernel_size=4,
+                                                    strides=(2,2,2),
+                                                    padding="same",
+                                                    use_bias=False,
+                                                    name="Conv3D_3")(layer2_relu)
+    layer3_norm = tf.keras.layers.BatchNormalization(name="layer3_norm")(layer3)
+    layer3_relu = tf.keras.activations.relu(layer3_norm,
+                                            name="layer3_relu")
+    
+    layer4 = tf.keras.layers.Convolution3DTranspose(filters=8,
+                                                    kernel_size=4,
+                                                    strides=(2,2,2),
+                                                    padding="same",
+                                                    use_bias=False,
+                                                    name="Conv3D_4")(layer3_relu)
+    layer4_norm = tf.keras.layers.BatchNormalization(name="layer4_norm")(layer4)
+    layer4_relu = tf.keras.activations.relu(layer4_norm,
+                                            name="layer4_relu")
+    
+    layer5 = tf.keras.layers.Convolution3DTranspose(filters=1,
+                                                    kernel_size=1,
+                                                    use_bias=False,
+                                                    name="Conv3D_5")(layer4_relu)
+    layer5_sigmoid = tf.keras.activations.sigmoid(layer5,
+                                                name="layer5_sigmoid")
 
-  # TODO: check this statement
-  layer5_sigmoid = tf.keras.layers.Reshape((32,32,32))(layer5_sigmoid)
-  
-  return layer5_sigmoid
+    # TODO: check this statement
+    layer5_sigmoid = tf.keras.layers.Reshape((32,32,32))(layer5_sigmoid)
+    
+    return layer5_sigmoid
 
-if __name__ == '__main__':
-  input_shape = (224, 224, 3)
   input = tf.keras.Input(shape = input_shape,
                         name = "input_layer")
   encoder_model = tf.keras.Model(input, encoder(input), name = "encoder")
@@ -282,20 +281,66 @@ if __name__ == '__main__':
   autoencoder_model.summary()
   # print("-------------------------")
 
+  return autoencoder_model
+
+def my_train(x,y):
+  # Open a GradientTape to record the operations run
+  # during the forward pass, which enables auto-differentiation.
+  with tf.GradientTape() as tape:
+
+    # Run the forward pass of the layer.
+    # The operations that the layer applies
+    # to its inputs are going to be recorded
+    # on the GradientTape.
+    logits = autoencoder_model(x, training = True)  # Logits for this minibatch
+
+    # Compute the loss value for this minibatch.
+    loss_value = loss_fn(y, logits)
+
+  # Use the gradient tape to automatically retrieve
+  # the gradients of the trainable variables with respect to the loss.
+  grads = tape.gradient(loss_value, autoencoder_model.trainable_weights)
+
+  # Run one step of gradient descent by updating
+  # the value of the variables to minimize the loss.
+  opt.apply_gradients(zip(grads, autoencoder_model.trainable_weights))
+
+  return loss_value, logits
+
+def iou_dict_update(tax_id):
+  for i,j in enumerate(tax_id):
+    # print(i)
+    if j not in test_iou:
+
+      # TODO: not able to append the iou list to the iou filed of the dictionary below. This is a temporary workaround
+      # @dhruv @rishab try fixing this issue
+
+      test_iou[j] = {'n_samples': 0, 'iou': 0.0}
+
+    test_iou[j]['n_samples'] += 1
+    test_iou[j]['iou'] += iou[i]
+  
+  # # Mean IoU
+  # mean_iou = []
+  for taxonomy_id in test_iou:
+    test_iou[taxonomy_id]['iou'] = test_iou[taxonomy_id]['iou'] / test_iou[taxonomy_id]['n_samples']
+
+
+if __name__ == '__main__':
+  input_shape = (224, 224, 3)
+  autoencoder_model = build_autoencoder(input_shape=input_shape)
+
   # Loss function
   loss_fn = tf.keras.losses.BinaryCrossentropy(from_logits = True)
 
   # learning rate scheduler. learning rate becomes 0.01*0.5 after 150 epochs else it is 0.01*1.0
   learning_rate = 0.001
   boundaries = [150]
-  values = [1.0, 0.5]
+  values = [0.001, 0.0005]
   learning_rate_fn = tf.keras.optimizers.schedules.PiecewiseConstantDecay(boundaries, values)
 
   #  optimizer
   opt = tf.keras.optimizers.Adam()
-
-#   # compile_model
-#   autoencoder_model.compile(optimizer = opt, loss = loss_fn, metrics = [calc_iou_loss])
   
   # TODO: third output shape not defined properly. Check. Related to IoU calculation
   # train_dataset = tf.data.Dataset.from_generator(tf_data_generator,args= [train_path_list_sample, batch_size],
@@ -308,7 +353,7 @@ if __name__ == '__main__':
   # TODO: since the older generator was running forever, this is a fix but need to check propperly again
   train_dataset = tf.data.Dataset.from_generator(tf_data_generator2,args= [train_path_list_sample],
                                           output_types = (tf.float32, tf.float32, tf.string))
-  train_dataset = train_dataset.batch(batch_size).shuffle(100).prefetch(tf.data.AUTOTUNE)
+  train_dataset = train_dataset.batch(batch_size).shuffle(150).prefetch(tf.data.AUTOTUNE)
 
   # for x,y,z in train_dataset.take(5):
   #   print(x.shape, y.shape, z.shape)
@@ -335,49 +380,13 @@ if __name__ == '__main__':
       tax_id = [item.decode("utf-8") for item in tax_id] # byte string (b'hello' to regular string 'hello')
 
       # print(learning_rate)
-
-      # Open a GradientTape to record the operations run
-      # during the forward pass, which enables auto-differentiation.
-      with tf.GradientTape() as tape:
-
-        # Run the forward pass of the layer.
-        # The operations that the layer applies
-        # to its inputs are going to be recorded
-        # on the GradientTape.
-        logits = autoencoder_model(x_batch_train, training = True)  # Logits for this minibatch
-
-        # Compute the loss value for this minibatch.
-        loss_value = loss_fn(y_batch_train, logits)
-
-      # Use the gradient tape to automatically retrieve
-      # the gradients of the trainable variables with respect to the loss.
-      grads = tape.gradient(loss_value, autoencoder_model.trainable_weights)
-
-      # Run one step of gradient descent by updating
-      # the value of the variables to minimize the loss.
-      opt.apply_gradients(zip(grads, autoencoder_model.trainable_weights))
+      loss_value, logits = my_train(x_batch_train, y_batch_train)
 
       # print(learning_rate)
       iou = calc_iou_loss(y_batch_train, logits)
 
-      # TODO: for some reason test_iou has to be defined here itself otherwise getting an error. Check
-      # test_iou = dict()
-      for i,j in enumerate(tax_id):
-        # print(i)
-        if j not in test_iou:
-
-          # TODO: not able to append the iou list to the iou filed of the dictionary below. This is a temporary workaround
-          # @dhruv @rishab try fixing this issue
-
-          test_iou[j] = {'n_samples': 0, 'iou': 0.0}
-
-        test_iou[j]['n_samples'] += 1
-        test_iou[j]['iou'] += iou[i]
-      
-      # # Mean IoU
-      # mean_iou = []
-      for taxonomy_id in test_iou:
-        test_iou[taxonomy_id]['iou'] = test_iou[taxonomy_id]['iou'] / test_iou[taxonomy_id]['n_samples']
+      # IoU dict update moved to iou_dict_update function
+      iou_dict_update(tax_id)
 
       # mean_class_iou = []
       for taxonomy_id in test_iou:
