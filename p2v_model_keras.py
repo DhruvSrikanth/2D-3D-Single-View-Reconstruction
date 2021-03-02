@@ -325,6 +325,12 @@ def iou_dict_update(tax_id):
   for taxonomy_id in test_iou:
     test_iou[taxonomy_id]['iou'] = test_iou[taxonomy_id]['iou'] / test_iou[taxonomy_id]['n_samples']
 
+def train_and_checkpoint(net, manager):
+  ckpt.restore(manager.latest_checkpoint)
+  if manager.latest_checkpoint:
+    print("Restored from {}".format(manager.latest_checkpoint))
+  else:
+    print("Initializing from scratch.")
 
 if __name__ == '__main__':
   input_shape = (224, 224, 3)
@@ -354,6 +360,11 @@ if __name__ == '__main__':
   train_dataset = tf.data.Dataset.from_generator(tf_data_generator2,args= [train_path_list_sample],
                                           output_types = (tf.float32, tf.float32, tf.string))
   train_dataset = train_dataset.batch(batch_size).shuffle(150).prefetch(tf.data.AUTOTUNE)
+
+  ckpt = tf.train.Checkpoint(step=tf.Variable(1), optimizer=opt, autoencoder_model=autoencoder_model, iterator=train_dataset)
+  manager = tf.train.CheckpointManager(ckpt, './tf_ckpts', max_to_keep=3)
+
+  train_and_checkpoint(autoencoder_model, manager)
 
   # for x,y,z in train_dataset.take(5):
   #   print(x.shape, y.shape, z.shape)
@@ -405,18 +416,26 @@ if __name__ == '__main__':
 
       progBar.add(batch_size, values)
 
+    print(loss_value)
+    ckpt.step.assign_add(1)
+
+    if int(ckpt.step) % 2 == 0:
+      save_path = manager.save()
+      print("Saved checkpoint for step {}: {}".format(int(ckpt.step), save_path))
+      print("loss {}".format(loss_value))
+
     print(test_iou)
 
-    mean_class_iou = json.dumps(mean_iou) #JSONify the mean iou list containing mean iou for each class
+    # mean_class_iou = json.dumps(mean_iou) #JSONify the mean iou list containing mean iou for each class
     
     # FOR TRAINING -> Uncomment during actual training
-    if epoch % 2 == 0 and epoch:
-      # TODO: this print statement outputs a lot of info (training iou list and training loss list)
-      # so correct this to only 1 value eac
-      # print("[EPOCH = %d] --> [TRAINING LOSS = %.4f] --> [TRAINING IOU = %s]" % (epoch, float(loss_value), mean_class_iou))
+    # if epoch % 2 == 0 and epoch:
+    #   # TODO: this print statement outputs a lot of info (training iou list and training loss list)
+    #   # so correct this to only 1 value eac
+    #   # print("[EPOCH = %d] --> [TRAINING LOSS = %.4f] --> [TRAINING IOU = %s]" % (epoch, float(loss_value), mean_class_iou))
 
-      file_path = 'ae_model_epoch_{}.h5'.format(epoch)
+    #   file_path = 'ae_model_epoch_{}.h5'.format(epoch)
 
-      # TODO: this saves the model it isn't same a checkpoint (saw this on the tf site)
-      # if loading and resuming works then all is good otherwise take a look again
-      tf.keras.models.save_model(model = autoencoder_model, filepath = file_path, overwrite = False, include_optimizer = True)
+    #   # TODO: this saves the model it isn't same a checkpoint (saw this on the tf site)
+    #   # if loading and resuming works then all is good otherwise take a look again
+    #   tf.keras.models.save_model(model = autoencoder_model, filepath = file_path, overwrite = False, include_optimizer = True)
