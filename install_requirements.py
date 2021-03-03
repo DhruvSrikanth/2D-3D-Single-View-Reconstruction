@@ -1,6 +1,8 @@
 # Requirements for 3D Reconstruction code based on Pix2Vox
 
 # -------------------------------------------------------------------------------------------------------------------- #
+# -------------------------------------------------------------------------------------------------------------------- #
+
 # Tensorflow - (2.4.0)
 # pip install tensorflow==2.4.0
 
@@ -12,7 +14,19 @@
 # https://developer.nvidia.com/rdp/cudnn-archive
 
 # https://docs.nvidia.com/deeplearning/cudnn/install-guide/index.html#installwindows
+
 # -------------------------------------------------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------------------------------------------------- #
-# Unpack Datasets .tgz files with
+
+# Unpack Datasets .tgz files with -
 # tar xzvf your-file-name.tgz
+
+# -------------------------------------------------------------------------------------------------------------------- #
+# -------------------------------------------------------------------------------------------------------------------- #
+
+# Some Helpful Github commands
+# git init
+# git add .
+# git commit -m "Message"
+# git pull origin master
+# git push <remotename> <local_branch_name>:<remote_branch_name>
