@@ -20,8 +20,13 @@ TAXONOMY_FILE_PATH    = 'C:\\Users\\bidnu\\Documents\\Suraj_Docs\\3D_Project\\Sh
 RENDERING_PATH        = 'C:\\Users\\bidnu\\Documents\\Suraj_Docs\\3D_Project\\ShapeNet_P2V\\ShapeNetRendering\\{}\\{}\\rendering'
 VOXEL_PATH            = 'C:\\Users\\bidnu\\Documents\\Suraj_Docs\\3D_Project\\ShapeNet_P2V\\ShapeNetVox32\\{}\\{}\\model.binvox'
 
-with open(TAXONOMY_FILE_PATH, encoding='utf-8') as file:
-  taxonomy_dict = json.loads(file.read())
+def readTaxJSON(filepath):
+  with open(filepath, encoding='utf-8') as file:
+    taxonomy_dict = json.loads(file.read())
+
+  return taxonomy_dict
+
+taxonomy_dict = readTaxJSON(TAXONOMY_FILE_PATH)
 
 def get_xy_paths(taxonomy_dict, mode = 'train'):
   path_list = []
@@ -114,14 +119,12 @@ def tf_data_generator(file_list, batch_size=16):
       global sample
       sample = []
       for file in file_chunk:
-        # img_path = file[0].strip('\n')
-        # voxel_path = file[1].strip('\n')
         img_path = file[0]
         voxel_path = file[1]
         class_name = file[2]
 
         rgba_in = Image.open(img_path)
-        rgba_in.load()
+        # rgba_in.load()
         background = Image.new("RGB", rgba_in.size, (255, 255, 255))
         background.paste(rgba_in, mask=rgba_in.split()[3]) # 3 is the alpha channel
         rendering_image = cv2.resize(np.array(background).astype(np.float32), (224,224)) / 255.
@@ -129,7 +132,6 @@ def tf_data_generator(file_list, batch_size=16):
         with open(voxel_path, 'rb') as f:
           volume = binvox_rw.read_as_3d_array(f)
           volume = volume.data.astype(np.float32)
-        # volume = np.random.random(size=(4,4,128))
 
         img.append(rendering_image)
         target.append(volume)
@@ -139,10 +141,6 @@ def tf_data_generator(file_list, batch_size=16):
     target = np.asarray(target).reshape(-1,32,32,32).astype(np.float32)
     sample = np.asarray(sample).reshape(-1,1).astype(str)
 
-    # print(img.nbytes)
-    # print(target.nbytes)
-    # print(img.itemsize)
-    # print(target.itemsize)
     yield img, target, sample
     i = i + 1
 
@@ -334,6 +332,22 @@ def train_and_checkpoint(net, manager):
 
 if __name__ == '__main__':
   input_shape = (224, 224, 3)
+
+  # end_epoch = 10
+
+  # TODO: this part not working when trying to load a saved model. getting tons of out of memory errors and code crashed
+  # saved_model_files = glob.glob("*.h5")
+  # if len(saved_model_files) == 0:
+  #   resume_epoch = 0
+  #   autoencoder_model = build_autoencoder(input_shape)
+  # else:
+  #   latest_model = saved_model_files[-1]
+  #   autoencoder_model = tf.keras.models.load_model(latest_model, compile = False)
+  #   resume_epoch = int(latest_model.split("_")[-1].split(".")[0])
+
+  # print(resume_epoch)
+  # print(saved_model_files)
+  # autoencoder_model = tf.keras.models.load_model('ae_model_epoch_2.h5',compile = False)
   autoencoder_model = build_autoencoder(input_shape=input_shape)
 
   # Loss function
@@ -342,7 +356,7 @@ if __name__ == '__main__':
   # learning rate scheduler. learning rate becomes 0.01*0.5 after 150 epochs else it is 0.01*1.0
   learning_rate = 0.001
   boundaries = [150]
-  values = [0.001, 0.0005]
+  values = [learning_rate, learning_rate * 0.5]
   learning_rate_fn = tf.keras.optimizers.schedules.PiecewiseConstantDecay(boundaries, values)
 
   #  optimizer
@@ -361,13 +375,10 @@ if __name__ == '__main__':
                                           output_types = (tf.float32, tf.float32, tf.string))
   train_dataset = train_dataset.batch(batch_size).shuffle(150).prefetch(tf.data.AUTOTUNE)
 
-  ckpt = tf.train.Checkpoint(step=tf.Variable(1), optimizer=opt, autoencoder_model=autoencoder_model, iterator=train_dataset)
-  manager = tf.train.CheckpointManager(ckpt, './tf_ckpts', max_to_keep=3)
+  # ckpt = tf.train.Checkpoint(step=tf.Variable(1), optimizer=opt, autoencoder_model=autoencoder_model, iterator=train_dataset)
+  # manager = tf.train.CheckpointManager(ckpt, './tf_ckpts', max_to_keep=3)
 
-  train_and_checkpoint(autoencoder_model, manager)
-
-  # for x,y,z in train_dataset.take(5):
-  #   print(x.shape, y.shape, z.shape)
+  # train_and_checkpoint(autoencoder_model, manager)
   
   mean_iou = list()
   mean_class_iou = list()
@@ -376,6 +387,17 @@ if __name__ == '__main__':
   num_training_samples = len(train_path_list_sample)
   epochs = 4
   
+  # end_epoch = 10
+
+  # saved_model_files = glob.glob("*.h5")
+  # if len(saved_model_files) == 0:
+  #   start_epoch = 0
+  # else:
+  #   latest_model = saved_model_files[-1]
+  #   resume_epoch = int(latest_model.split("_")[-1].split(".")[0])
+  # print(resume_epoch)
+  # print(saved_model_files)
+
   for epoch in range(epochs):
     print("\nepoch {}/{}".format(epoch + 1,epochs))
     learning_rate = learning_rate_fn(epoch)
@@ -416,26 +438,26 @@ if __name__ == '__main__':
 
       progBar.add(batch_size, values)
 
-    print(loss_value)
-    ckpt.step.assign_add(1)
+    print(loss_value.numpy())
+    # ckpt.step.assign_add(1)
 
-    if int(ckpt.step) % 2 == 0:
-      save_path = manager.save()
-      print("Saved checkpoint for step {}: {}".format(int(ckpt.step), save_path))
-      print("loss {}".format(loss_value))
+    # if int(ckpt.step) % 2 == 0:
+    #   save_path = manager.save()
+    #   print("Saved checkpoint for step {}: {}".format(int(ckpt.step), save_path))
+    #   print("loss {}".format(loss_value))
 
     print(test_iou)
 
     # mean_class_iou = json.dumps(mean_iou) #JSONify the mean iou list containing mean iou for each class
     
     # FOR TRAINING -> Uncomment during actual training
-    # if epoch % 2 == 0 and epoch:
-    #   # TODO: this print statement outputs a lot of info (training iou list and training loss list)
-    #   # so correct this to only 1 value eac
-    #   # print("[EPOCH = %d] --> [TRAINING LOSS = %.4f] --> [TRAINING IOU = %s]" % (epoch, float(loss_value), mean_class_iou))
+    if epoch % 2 == 0 and epoch:
+      # TODO: this print statement outputs a lot of info (training iou list and training loss list)
+      # so correct this to only 1 value eac
+      # print("[EPOCH = %d] --> [TRAINING LOSS = %.4f] --> [TRAINING IOU = %s]" % (epoch, float(loss_value), mean_class_iou))
 
-    #   file_path = 'ae_model_epoch_{}.h5'.format(epoch)
+      file_path = 'ae_model_epoch_{}.h5'.format(epoch)
 
-    #   # TODO: this saves the model it isn't same a checkpoint (saw this on the tf site)
-    #   # if loading and resuming works then all is good otherwise take a look again
-    #   tf.keras.models.save_model(model = autoencoder_model, filepath = file_path, overwrite = False, include_optimizer = True)
+      # TODO: this saves the model it isn't same a checkpoint (saw this on the tf site)
+      # if loading and resuming works then all is good otherwise take a look again
+      tf.keras.models.save_model(model = autoencoder_model, filepath = file_path, overwrite = False, include_optimizer = True)
