@@ -17,9 +17,12 @@ os.environ['TF_FORCE_GPU_ALLOW_GROWTH'] = 'true'
 # tf.debugging.set_log_device_placement(True)
 
 
-TAXONOMY_FILE_PATH    = 'C:\\Users\\bidnu\\Documents\\Suraj_Docs\\3D_Project\\ShapeNet_P2V\\ShapeNet.json'
-RENDERING_PATH        = 'C:\\Users\\bidnu\\Documents\\Suraj_Docs\\3D_Project\\ShapeNet_P2V\\ShapeNetRendering\\{}\\{}\\rendering'
-VOXEL_PATH            = 'C:\\Users\\bidnu\\Documents\\Suraj_Docs\\3D_Project\\ShapeNet_P2V\\ShapeNetVox32\\{}\\{}\\model.binvox'
+
+
+
+TAXONOMY_FILE_PATH    = 'E:\\Projects\\3D_Reconstruction\\3DR_src\\ShapeNet.json'
+RENDERING_PATH        = 'E:\Datasets\3D_Reconstruction\ShapeNetRendering\\{}\\{}\\rendering'
+VOXEL_PATH            = 'E:\Datasets\3D_Reconstruction\ShapeNetVox32\\{}\\{}\\model.binvox'
 
 def readTaxJSON(filepath):
   with open(filepath, encoding='utf-8') as file:
@@ -27,6 +30,7 @@ def readTaxJSON(filepath):
 
   return taxonomy_dict
 
+# Read Taxonomy JSON file
 taxonomy_dict = readTaxJSON(TAXONOMY_FILE_PATH)
 
 def get_xy_paths(taxonomy_dict, mode = 'train'):
@@ -48,15 +52,18 @@ def get_xy_paths(taxonomy_dict, mode = 'train'):
       
   return path_list
 
+# Get path lists
 train_path_list = get_xy_paths(taxonomy_dict = taxonomy_dict, mode = 'train')
 train_path_list_sample = train_path_list[:100] + train_path_list[-100:] # just for testing purposes
 
 #Implementation 1 (correct)
-# TODO: the output of this function for some reason cannot be appended to a list in the trianing loop
+# TODO: the output of this function for some reason cannot be appended to a list in the training loop
 # check the TODO comment there also
 # I tried replicating the function in numpy but that also didn't solve the issue
 # And we need to take care when we pass batch inputs. right now I have added a crude implementation of that but try and make it better
 
+
+# Calculate IOU loss
 def calc_iou_loss(y_true, y_pred):
   # y_true = tf.convert_to_tensor(y_true)
   # y_pred = tf.convert_to_tensor(y_pred)
@@ -163,6 +170,8 @@ def tf_data_generator2(file_list):
 
     yield rendering_image, volume, tax_id
 
+
+# Build complete autoencoder model
 def build_autoencoder(input_shape = (224, 224, 3)):
   def encoder(inp, input_shape=(224,224,3)):
     vgg = VGG16(include_top = False,
@@ -277,11 +286,13 @@ def build_autoencoder(input_shape = (224, 224, 3)):
   decoder_input = tf.keras.layers.Reshape((2,2,2,256))(encoder_output)
 
   autoencoder_model = tf.keras.Model(input, decoder_model(decoder_input), name ='autoencoder')
-  autoencoder_model.summary()
+  # autoencoder_model.summary()
   # print("-------------------------")
 
   return autoencoder_model
 
+
+# Custom Train Loop
 def my_train(x,y):
   # Open a GradientTape to record the operations run
   # during the forward pass, which enables auto-differentiation.
@@ -439,7 +450,7 @@ if __name__ == '__main__':
 
       progBar.add(batch_size, values)
 
-    print(loss_value.numpy())
+    # print(loss_value.numpy())
     # ckpt.step.assign_add(1)
 
     # if int(ckpt.step) % 2 == 0:
@@ -447,7 +458,7 @@ if __name__ == '__main__':
     #   print("Saved checkpoint for step {}: {}".format(int(ckpt.step), save_path))
     #   print("loss {}".format(loss_value))
 
-    print(test_iou)
+    # print(test_iou)
 
     # mean_class_iou = json.dumps(mean_iou) #JSONify the mean iou list containing mean iou for each class
     
