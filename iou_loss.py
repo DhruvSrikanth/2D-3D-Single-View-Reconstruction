@@ -48,26 +48,26 @@ def calc_iou_loss2(y_true, y_pred):
     
   return iou
 
-#Implementation 2
-def get_iou(masks, predictions):
-  import tensorflow as tf
-  ious = []
-  for i in range(batch_size):
-      mask = masks[i]
-      pred = predictions[i]
-      masks_sum = tf.reduce_sum(mask)
-      predictions_sum = tf.reduce_mean(pred)
-      intersection = tf.reduce_sum(tf.multiply(mask, pred))
-      union = masks_sum + predictions_sum - intersection
-      iou = intersection / union
-      ious.append(iou)
-  return ious
-
-y_true = np.random.randint(0,2,size=(32, 32, 32)).astype(np.float32)
-y_pred = np.random.random(size=(32,32,32)).astype(np.float32)
-
-print("iou1 - {}".format(calc_iou_loss1(y_true, y_pred)))
-print("iou2 - {}".format(calc_iou_loss2(y_true, y_pred)))
+# #Implementation 2
+# def get_iou(masks, predictions):
+#   import tensorflow as tf
+#   ious = []
+#   for i in range(batch_size):
+#       mask = masks[i]
+#       pred = predictions[i]
+#       masks_sum = tf.reduce_sum(mask)
+#       predictions_sum = tf.reduce_mean(pred)
+#       intersection = tf.reduce_sum(tf.multiply(mask, pred))
+#       union = masks_sum + predictions_sum - intersection
+#       iou = intersection / union
+#       ious.append(iou)
+#   return ious
+#
+# y_true = np.random.randint(0,2,size=(32, 32, 32)).astype(np.float32)
+# y_pred = np.random.random(size=(32,32,32)).astype(np.float32)
+#
+# print("iou1 - {}".format(calc_iou_loss1(y_true, y_pred)))
+# print("iou2 - {}".format(calc_iou_loss2(y_true, y_pred)))
 
 # iou = get_iou(masks, predictions)
 # mean_iou_loss = tf.Variable(initial_value=-tf.log(tf.reduce_sum(iou)), name='loss', trainable=True)
