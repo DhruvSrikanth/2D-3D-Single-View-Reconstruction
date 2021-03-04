@@ -21,8 +21,8 @@ os.environ['TF_FORCE_GPU_ALLOW_GROWTH'] = 'true'
 
 
 TAXONOMY_FILE_PATH    = 'E:\\Projects\\3D_Reconstruction\\3DR_src\\ShapeNet.json'
-RENDERING_PATH        = 'E:\Datasets\3D_Reconstruction\ShapeNetRendering\\{}\\{}\\rendering'
-VOXEL_PATH            = 'E:\Datasets\3D_Reconstruction\ShapeNetVox32\\{}\\{}\\model.binvox'
+RENDERING_PATH        = 'E:\\Datasets\\3D_Reconstruction\ShapeNetRendering\\{}\\{}\\rendering'
+VOXEL_PATH            = 'E:\\Datasets\\3D_Reconstruction\ShapeNetVox32\\{}\\{}\\model.binvox'
 
 def readTaxJSON(filepath):
   with open(filepath, encoding='utf-8') as file:
@@ -98,7 +98,7 @@ def calc_iou_loss(y_true, y_pred):
     res.append(iou.tolist())
 
   # ans = np.array(res).reshape(-1,1)
-   
+
   return res
 
 # y_true = np.random.randint(0,2,size=(32, 32, 32)).astype(np.float32)
@@ -122,7 +122,7 @@ def tf_data_generator(file_list, batch_size=16):
       file_chunk = file_list[i*batch_size:(i+1)*batch_size]
       global img
       img = []
-      global target 
+      global target
       target = []
       global sample
       sample = []
@@ -178,13 +178,13 @@ def build_autoencoder(input_shape = (224, 224, 3)):
                 weights = "imagenet",
                 input_shape = input_shape,
                 pooling = "none")
-    
+
     vgg.trainable = False
-    
+
     part_vgg = tf.keras.models.Model(inputs = vgg.input,
                                     outputs = vgg.get_layer(name="block4_conv2").output,
                                     name = "part_vgg")
-    
+
     # https://keras.io/guides/transfer_learning/
     x = part_vgg(inputs = inp,
                 training=False)
@@ -224,7 +224,7 @@ def build_autoencoder(input_shape = (224, 224, 3)):
     layer1_norm = tf.keras.layers.BatchNormalization(name="layer1_norm")(layer1)
     layer1_relu = tf.keras.activations.relu(layer1_norm,
                                             name="layer1_relu")
-    
+
     layer2 = tf.keras.layers.Convolution3DTranspose(filters=64,
                                                     kernel_size=4,
                                                     strides=(2,2,2),
@@ -234,7 +234,7 @@ def build_autoencoder(input_shape = (224, 224, 3)):
     layer2_norm = tf.keras.layers.BatchNormalization(name="layer2_norm")(layer2)
     layer2_relu = tf.keras.activations.relu(layer2_norm,
                                             name="layer2_relu")
-    
+
     layer3 = tf.keras.layers.Convolution3DTranspose(filters=32,
                                                     kernel_size=4,
                                                     strides=(2,2,2),
@@ -244,7 +244,7 @@ def build_autoencoder(input_shape = (224, 224, 3)):
     layer3_norm = tf.keras.layers.BatchNormalization(name="layer3_norm")(layer3)
     layer3_relu = tf.keras.activations.relu(layer3_norm,
                                             name="layer3_relu")
-    
+
     layer4 = tf.keras.layers.Convolution3DTranspose(filters=8,
                                                     kernel_size=4,
                                                     strides=(2,2,2),
@@ -254,7 +254,7 @@ def build_autoencoder(input_shape = (224, 224, 3)):
     layer4_norm = tf.keras.layers.BatchNormalization(name="layer4_norm")(layer4)
     layer4_relu = tf.keras.activations.relu(layer4_norm,
                                             name="layer4_relu")
-    
+
     layer5 = tf.keras.layers.Convolution3DTranspose(filters=1,
                                                     kernel_size=1,
                                                     use_bias=False,
@@ -264,7 +264,7 @@ def build_autoencoder(input_shape = (224, 224, 3)):
 
     # TODO: check this statement
     layer5_sigmoid = tf.keras.layers.Reshape((32,32,32))(layer5_sigmoid)
-    
+
     return layer5_sigmoid
 
   input = tf.keras.Input(shape = input_shape,
@@ -329,13 +329,13 @@ def iou_dict_update(tax_id):
 
     test_iou[j]['n_samples'] += 1
     test_iou[j]['iou'] += iou[i]
-  
+
   # # Mean IoU
   # mean_iou = []
   for taxonomy_id in test_iou:
     test_iou[taxonomy_id]['iou'] = test_iou[taxonomy_id]['iou'] / test_iou[taxonomy_id]['n_samples']
 
-def train_and_checkpoint(net, manager, cpkt):
+def train_and_checkpoint(net, manager, ckpt):
   ckpt.restore(manager.latest_checkpoint)
   if manager.latest_checkpoint:
     print("Restored from {}".format(manager.latest_checkpoint))
@@ -373,13 +373,13 @@ if __name__ == '__main__':
 
   #  optimizer
   opt = tf.keras.optimizers.Adam()
-  
+
   # TODO: third output shape not defined properly. Check. Related to IoU calculation
   # train_dataset = tf.data.Dataset.from_generator(tf_data_generator,args= [train_path_list_sample, batch_size],
   #                                         output_types = (tf.float32, tf.float32, tf.string),
   #                                         output_shapes = ((None, 224, 224, 3),(None, 32, 32, 32),(None, 1)))
   # train_dataset.prefetch(tf.data.AUTOTUNE).cache("cache_file.txt")
-  
+
   batch_size = 1
 
   # TODO: since the older generator was running forever, this is a fix but need to check propperly again
@@ -390,15 +390,15 @@ if __name__ == '__main__':
   # ckpt = tf.train.Checkpoint(step=tf.Variable(1), optimizer=opt, autoencoder_model=autoencoder_model, iterator=train_dataset)
   # manager = tf.train.CheckpointManager(ckpt, './tf_ckpts', max_to_keep=3)
 
-  # train_and_checkpoint(autoencoder_model, manager, cpkt)
-  
+  # train_and_checkpoint(autoencoder_model, manager, ckpt)
+
   mean_iou = list()
   mean_class_iou = list()
 
   # TODO: add checkpoint to custom training loop
   num_training_samples = len(train_path_list_sample)
   epochs = 4
-  
+
   # end_epoch = 10
 
   # saved_model_files = glob.glob("*.h5")
@@ -441,7 +441,7 @@ if __name__ == '__main__':
 
       # TODO: not able to access the test_iou or mean_iou variables even though they are global. Check
       values=[('train_loss',loss_value)]
-      
+
       # # FOR TESTING -> Uncomment next if clause to check if the model can be saved and loaded
       # if step % 500 == 0:
       #   print("[STEP = %d] --> [TRAINING LOSS = %.4f] --> [TRAINING IOU = %s]" % (step, float(loss_value), mean_class_iou))
@@ -461,7 +461,7 @@ if __name__ == '__main__':
     # print(test_iou)
 
     # mean_class_iou = json.dumps(mean_iou) #JSONify the mean iou list containing mean iou for each class
-    
+
     # FOR TRAINING -> Uncomment during actual training
     if epoch % 2 == 0 and epoch:
       # TODO: this print statement outputs a lot of info (training iou list and training loss list)
@@ -473,3 +473,4 @@ if __name__ == '__main__':
       # TODO: this saves the model it isn't same a checkpoint (saw this on the tf site)
       # if loading and resuming works then all is good otherwise take a look again
       tf.keras.models.save_model(model = autoencoder_model, filepath = file_path, overwrite = False, include_optimizer = True)
+
