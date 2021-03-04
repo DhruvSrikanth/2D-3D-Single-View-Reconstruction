@@ -10,9 +10,10 @@
 # https://developer.nvidia.com/cuda-11.0-download-archive?target_os=Windows&target_arch=x86_64&target_version=10&\
 # target_type=exelocal
 
-# CUDNN - (8.0.4):
+# CUDNN - (8.0.4)
 # https://developer.nvidia.com/rdp/cudnn-archive
 
+# CUDNN Installation Guide -
 # https://docs.nvidia.com/deeplearning/cudnn/install-guide/index.html#installwindows
 
 # -------------------------------------------------------------------------------------------------------------------- #
@@ -25,14 +26,26 @@
 # -------------------------------------------------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------------------------------------------------- #
 
-# Some Helpful Github commands
+# Some Helpful Github commands -
+# Initialize git repo <local-dir>
 # git init
-# git add .
+
+# Add files
+# git add <file-extension>
+
+# Reset Changes Before Commit
 # git reset
+
+# Commit Changes To Local Git Repo
 # git commit -m "Message"
-# git pull origin master
+
+# Push Changes To Global Git Repo
 # git push <remote_name> <local_branch_name>:<remote_branch_name>
-# git push -d <remote_name> <branch_name>
+
+# Pull Codes From Global Git Repo To Local Repo
+# git pull origin master
+
+# Delete Local Branch
 # git branch -d <branch_name>
 
 
