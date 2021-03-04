@@ -44,6 +44,7 @@
 
 # Pull Codes From Global Git Repo To Local Repo
 # git pull origin master
+# git push <remote_name> <remote_branch_name>:<local_branch_name>
 
 # Delete Local Branch
 # git branch -d <branch_name>
