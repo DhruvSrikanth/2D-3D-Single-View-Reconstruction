@@ -29,7 +29,7 @@
 # git add .
 # git commit -m "Message"
 # git pull origin master
-# git push <remotename> <local_branch_name>:<remote_branch_name>
+# git push <remote_name> <local_branch_name>:<remote_branch_name>
 # git push -d <remote_name> <branch_name>
 # git branch -d <branch_name>
 
