@@ -335,7 +335,7 @@ def iou_dict_update(tax_id):
   for taxonomy_id in test_iou:
     test_iou[taxonomy_id]['iou'] = test_iou[taxonomy_id]['iou'] / test_iou[taxonomy_id]['n_samples']
 
-def train_and_checkpoint(net, manager):
+def train_and_checkpoint(net, manager, cpkt):
   ckpt.restore(manager.latest_checkpoint)
   if manager.latest_checkpoint:
     print("Restored from {}".format(manager.latest_checkpoint))
@@ -390,7 +390,7 @@ if __name__ == '__main__':
   # ckpt = tf.train.Checkpoint(step=tf.Variable(1), optimizer=opt, autoencoder_model=autoencoder_model, iterator=train_dataset)
   # manager = tf.train.CheckpointManager(ckpt, './tf_ckpts', max_to_keep=3)
 
-  # train_and_checkpoint(autoencoder_model, manager)
+  # train_and_checkpoint(autoencoder_model, manager, cpkt)
   
   mean_iou = list()
   mean_class_iou = list()

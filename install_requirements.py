@@ -20,6 +20,7 @@
 
 # Unpack Datasets .tgz files with -
 # tar xzvf your-file-name.tgz
+# tar -xzf your-file-name.tgz
 
 # -------------------------------------------------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------------------------------------------------- #
@@ -27,6 +28,7 @@
 # Some Helpful Github commands
 # git init
 # git add .
+# git reset
 # git commit -m "Message"
 # git pull origin master
 # git push <remote_name> <local_branch_name>:<remote_branch_name>
