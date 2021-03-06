@@ -5,6 +5,7 @@ import sys
 import glob
 import json
 import numpy as np
+import datetime
 
 import cv2
 from PIL import Image
@@ -432,6 +433,15 @@ if __name__ == '__main__':
     # Optimizer
     opt = tf.keras.optimizers.Adam()
 
+    # Tensorboard Graph
+    current_time = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+
+    train_log_dir = 'logs/gradient_tape/' + current_time + '/train'
+    train_summary_writer = tf.summary.create_file_writer(train_log_dir)
+
+    # test_log_dir = 'logs/gradient_tape/' + current_time + '/test'
+    # test_summary_writer = tf.summary.create_file_writer(test_log_dir)
+
     mean_iou = list()
     mean_class_iou = list()
 
@@ -473,6 +483,10 @@ if __name__ == '__main__':
             # print(loss_value.numpy())
             # print(test_iou)
             # mean_class_iou = json.dumps(mean_iou) #JSONify the mean iou list containing mean iou for each class
+
+        with train_summary_writer.as_default():
+            tf.summary.scalar('loss', loss_value, step=epoch)
+            tf.summary.scalar('accuracy', iou[0], step=epoch)
 
         # Save Model During Training
         if (epoch+1) % model_save_frequency == 0:
