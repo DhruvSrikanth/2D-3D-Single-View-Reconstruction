@@ -31,7 +31,7 @@ VOXEL_PATH            = 'C:\\Users\\bidnu\\Documents\\Suraj_Docs\\3D_Project\\Sh
 
 input_shape = (224, 224, 3)  # input shape
 batch_size = 8  # batch size
-epochs = 8  # Number of epochs
+epochs = 32  # Number of epochs
 model_save_frequency = 4 # Save model every n epochs (specify n)
 
 # ----------------------------------------------Define Dataset Reader and Generator----------------------------------- #
@@ -278,9 +278,7 @@ def build_autoencoder(input_shape = (224, 224, 3)):
 
 # ----------------------------------------------Define Optimizer------------------------------------------------------ #
 
-#Implementation 1 (correct)
-# TODO: the output of this function for some reason cannot be appended to a list in the training loop
-# We need to take care when we pass batch inputs. right now I have added a crude implementation of that but try and make it better
+# TODO: batch iou calculation seems to be working for now
 
 # Calculate IOU loss
 def calc_iou_loss(y_true, y_pred):
@@ -341,7 +339,7 @@ def calc_iou_loss(y_true, y_pred):
 # # print(ans)
 # print("iou - {}".format(ans))
 
-# TODO: Function needs to be revisited, no return value specifiec
+# TODO: Function revisited (arguments now are test_iou dict and iou list, returns a dictionary)
 def iou_dict_update(tax_id, test_iou, iou):
     '''
     Update IOU dictionary for each class.
@@ -352,18 +350,12 @@ def iou_dict_update(tax_id, test_iou, iou):
       # print(i)
       if j not in test_iou:
 
-        # TODO: not able to append the iou list to the iou filed of the dictionary below. This is a temporary workaround
-        # @dhruv @rishab try fixing this issue
+        # TODO: Check this implementation. It is janky
 
         test_iou[j] = {'n_samples': 0, 'iou': []}
 
       test_iou[j]['n_samples'] += 1
-      test_iou[j]['iou'].extend(iou)
-
-      # # Mean IoU
-      # mean_iou = []
-      # for taxonomy_id in test_iou:
-          # test_iou[taxonomy_id]['iou'] = test_iou[taxonomy_id]['iou'] / test_iou[taxonomy_id]['n_samples']
+      test_iou[j]['iou'].append(iou[i])
 
     return test_iou
 
@@ -414,6 +406,9 @@ if __name__ == '__main__':
     val_path_list = get_xy_paths(taxonomy_dict=taxonomy_dict, mode='val')
     val_path_list_sample = val_path_list[:20] + val_path_list[-20:]  # just for testing purposes
 
+    test_path_list = get_xy_paths(taxonomy_dict=taxonomy_dict, mode='test')
+    test_path_list_sample = test_path_list[:20] + test_path_list[-20:]  # just for testing purposes
+
     # TODO: third output shape not defined properly. Check. Related to IoU calculation
     # train_dataset = tf.data.Dataset.from_generator(tf_data_generator, args= [train_path_list_sample, batch_size],
     #                                         output_types = (tf.float32, tf.float32, tf.string),
@@ -425,9 +420,15 @@ if __name__ == '__main__':
                                           output_types = (tf.float32, tf.float32, tf.string))
     train_dataset = train_dataset.batch(batch_size).shuffle(150).prefetch(tf.data.AUTOTUNE)
 
+    # validation data generator
     val_dataset = tf.data.Dataset.from_generator(tf_data_generator2, args=[val_path_list_sample],
                                           output_types = (tf.float32, tf.float32, tf.string))
-    val_dataset = train_dataset.batch(batch_size).shuffle(150).prefetch(tf.data.AUTOTUNE)
+    val_dataset = val_dataset.batch(batch_size).shuffle(150).prefetch(tf.data.AUTOTUNE)
+
+    # test data generator
+    test_dataset = tf.data.Dataset.from_generator(tf_data_generator2, args=[test_path_list_sample],
+                                          output_types = (tf.float32, tf.float32, tf.string))
+    test_dataset = test_dataset.batch(batch_size).shuffle(150).prefetch(tf.data.AUTOTUNE)
 
     # Load Model and Resume Training, otherwise Start Training
     saved_model_files = glob.glob("*.h5")
@@ -458,14 +459,26 @@ if __name__ == '__main__':
     # Tensorboard Graph
     current_time = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 
+    # tensorboard writer for training values
     train_log_dir = 'logs/gradient_tape/' + current_time + '/train'
     train_summary_writer = tf.summary.create_file_writer(train_log_dir)
 
-    # val_log_dir = 'logs/gradient_tape/' + current_time + '/val'
-    # val_summary_writer = tf.summary.create_file_writer(val_log_dir)
+    # tensorboard writer for validation values
+    val_log_dir = 'logs/gradient_tape/' + current_time + '/val'
+    val_summary_writer = tf.summary.create_file_writer(val_log_dir)
 
-    mean_iou = dict()
-    mean_class_iou = list()
+    # tensorboard writer for testing values
+    test_log_dir = 'logs/gradient_tape/' + current_time + '/test'
+    test_summary_writer = tf.summary.create_file_writer(test_log_dir)
+
+    # dictionary holds mean iou of each class for training data
+    mean_iou_train = dict()
+
+    # dictionary holds mean iou of each class for validation data
+    mean_iou_val = dict()
+
+    # dictionary holds mean iou of each class for testing data
+    mean_iou_test = dict()
 
     # Training Loop
     num_training_samples = len(train_path_list_sample)
@@ -475,6 +488,7 @@ if __name__ == '__main__':
 
         learning_rate = learning_rate_fn(epoch)
 
+        # TODO: rename this variable with a better name
         test_iou = dict()
 
         progBar = tf.keras.utils.Progbar(num_training_samples, stateful_metrics=['loss_fn'], verbose=1)
@@ -484,44 +498,77 @@ if __name__ == '__main__':
             tax_id = tax_id.numpy()
             tax_id = [item.decode("utf-8") for item in tax_id] # byte string (b'hello' to regular string 'hello')
 
-            loss_value, logits = my_train(x_batch_train, y_batch_train)
+            train_loss, logits = my_train(x_batch_train, y_batch_train)
 
             iou = calc_iou_loss(y_batch_train, logits)
+
+            out_dict = iou_dict_update(tax_id, test_iou, iou)
+
+            # TODO: see if there is better way to calculate the mean and maybe make this a function becuase the same thing is being 
+            # done in validation and also testing phases
+            for taxonomy_id in test_iou:
+                mean_iou_train[taxonomy_id] = sum(out_dict[taxonomy_id]['iou']) / len(out_dict[taxonomy_id]['iou'])
+
+            # TODO: not able to access the test_iou or mean_iou variables even though they are global. Check
+            values=[('train_loss', train_loss)]
+
+            progBar.add(batch_size, values)
+
+        print("training iou: {}".format(mean_iou_train))
+
+        # we cannot log iou to tensorboard because it is calculated for each class so its not a single value
+        # TODO: can we overlap training and validation loss and iou graphs so that its easier to interpret rather than individual graphs
+        with train_summary_writer.as_default():
+            tf.summary.scalar('train_loss', train_loss, step=epoch)
+            tf.summary.scalar('train_iou_plane', mean_iou_train['02691156'], step=epoch)
+
+        # Iterate over the batches of the dataset and calculate validation loss
+        for step, (x_batch_val, y_batch_val, tax_id) in enumerate(val_dataset):
+            tax_id = tax_id.numpy()
+            tax_id = [item.decode("utf-8") for item in tax_id] # byte string (b'hello' to regular string 'hello')
+
+            val_loss, logits = my_train(x_batch_val, y_batch_val)
+
+            iou = calc_iou_loss(y_batch_val, logits)
 
             # IoU dict update moved to iou_dict_update function
             out_dict = iou_dict_update(tax_id, test_iou, iou)
 
-            # mean_class_iou = []
             for taxonomy_id in test_iou:
                 # mean_iou[taxonomy_id] = []
-                mean_iou[taxonomy_id] = sum(out_dict[taxonomy_id]['iou']) / len(out_dict[taxonomy_id]['iou'])
+                mean_iou_val[taxonomy_id] = sum(out_dict[taxonomy_id]['iou']) / len(out_dict[taxonomy_id]['iou'])
 
-            # print(out_dict)
-            # print(mean_iou)
-            # mean_class_iou = json.loads(mean_class_iou) #JSONify the mean iou list containing mean iou for each class
-            # mean_class_iou = json.dumps(mean_class_iou) #JSONify the mean iou list containing mean iou for each class
-
-            # TODO: not able to access the test_iou or mean_iou variables even though they are global. Check
-            values=[('train_loss', loss_value)]
-
-            progBar.add(batch_size, values)
-
-            # print(loss_value.numpy())
-            # print(test_iou)
-            # mean_class_iou = json.dumps(mean_iou) #JSONify the mean iou list containing mean iou for each class
-
-        # for id in mean_iou:
-          # mean_iou[id] = sum(mean_iou[id]) / len(mean_iou[id])
-
-        print(mean_iou)
-
-        # we cannot log iou to tensorboard because it is calculated for each class so its not a single value
-        with train_summary_writer.as_default():
-            tf.summary.scalar('train_loss', loss_value, step=epoch)
-            tf.summary.scalar('train_iou_plane', mean_iou['02691156'], step=epoch)
+        with val_summary_writer.as_default():
+            tf.summary.scalar('val_loss', val_loss, step=epoch)
+            tf.summary.scalar('val_iou_plane', mean_iou_val['02691156'], step=epoch)
+        
+        print("validation iou: {}".format(mean_iou_val))
 
         # Save Model During Training
         if (epoch+1) % model_save_frequency == 0:
             model_save_file_path = 'ae_model_epoch_{}.h5'.format(epoch+1)
             print("Saving Autoencoder Model at ", model_save_file_path)
             tf.keras.models.save_model(model=autoencoder_model, filepath=model_save_file_path, overwrite=False, include_optimizer=True)
+
+    for step, (x_batch_test, y_batch_test, tax_id) in enumerate(test_dataset):
+        tax_id = tax_id.numpy()
+        tax_id = [item.decode("utf-8") for item in tax_id] # byte string (b'hello' to regular string 'hello')
+
+        test_loss, logits = my_train(x_batch_test, y_batch_test)
+
+        iou = calc_iou_loss(y_batch_test, logits)
+
+        # IoU dict update moved to iou_dict_update function
+        out_dict = iou_dict_update(tax_id, test_iou, iou)
+
+        for taxonomy_id in test_iou:
+            # mean_iou[taxonomy_id] = []
+            mean_iou_test[taxonomy_id] = sum(out_dict[taxonomy_id]['iou']) / len(out_dict[taxonomy_id]['iou'])
+
+    # TODO:check how to add test graphs to tensorboard because we don't have epoch information during testing phase
+    # this issue raises an error when you run the code
+    with test_summary_writer.as_default():
+        tf.summary.scalar('test_loss', val_loss)
+        tf.summary.scalar('test_iou_plane', mean_iou_val['02691156'])
+    
+    print("testing iou: {}".format(mean_iou_test))  
