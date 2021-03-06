@@ -31,8 +31,8 @@ VOXEL_PATH            = 'C:\\Users\\bidnu\\Documents\\Suraj_Docs\\3D_Project\\Sh
 
 input_shape = (224, 224, 3)  # input shape
 batch_size = 8  # batch size
-epochs = 4  # Number of epochs
-model_save_frequency = 2 # Save model every n epochs (specify n)
+epochs = 8  # Number of epochs
+model_save_frequency = 4 # Save model every n epochs (specify n)
 
 # ----------------------------------------------Define Dataset Reader and Generator----------------------------------- #
 
@@ -355,15 +355,15 @@ def iou_dict_update(tax_id, test_iou, iou):
         # TODO: not able to append the iou list to the iou filed of the dictionary below. This is a temporary workaround
         # @dhruv @rishab try fixing this issue
 
-        test_iou[j] = {'n_samples': 0, 'iou': 0.0}
+        test_iou[j] = {'n_samples': 0, 'iou': []}
 
       test_iou[j]['n_samples'] += 1
-      test_iou[j]['iou'] += iou[i]
+      test_iou[j]['iou'].extend(iou)
 
       # # Mean IoU
       # mean_iou = []
-      for taxonomy_id in test_iou:
-          test_iou[taxonomy_id]['iou'] = test_iou[taxonomy_id]['iou'] / test_iou[taxonomy_id]['n_samples']
+      # for taxonomy_id in test_iou:
+          # test_iou[taxonomy_id]['iou'] = test_iou[taxonomy_id]['iou'] / test_iou[taxonomy_id]['n_samples']
 
     return test_iou
 
@@ -438,8 +438,8 @@ if __name__ == '__main__':
     else:
         latest_model = saved_model_files[-1]
         autoencoder_model = tf.keras.models.load_model(latest_model, compile=False)
-        resume_epoch = int(latest_model.split("_")[-1].split(".")[0])
-        print("\nResuming Training On Epoch -> ", resume_epoch)
+        resume_epoch = int(latest_model.split("_")[-1].split(".")[0]) - 1
+        print("\nResuming Training On Epoch -> ", resume_epoch + 1)
         print("\nLoading Model From -> ", latest_model)
 
     # Loss
@@ -493,8 +493,8 @@ if __name__ == '__main__':
 
             # mean_class_iou = []
             for taxonomy_id in test_iou:
-                mean_iou[taxonomy_id] = []
-                mean_iou[taxonomy_id].append(out_dict[taxonomy_id]['iou'])
+                # mean_iou[taxonomy_id] = []
+                mean_iou[taxonomy_id] = sum(out_dict[taxonomy_id]['iou']) / len(out_dict[taxonomy_id]['iou'])
 
             # print(out_dict)
             # print(mean_iou)
@@ -510,14 +510,15 @@ if __name__ == '__main__':
             # print(test_iou)
             # mean_class_iou = json.dumps(mean_iou) #JSONify the mean iou list containing mean iou for each class
 
-        for id in mean_iou:
-          mean_iou[id] = sum(mean_iou[id]) / len(mean_iou[id])
+        # for id in mean_iou:
+          # mean_iou[id] = sum(mean_iou[id]) / len(mean_iou[id])
 
         print(mean_iou)
 
+        # we cannot log iou to tensorboard because it is calculated for each class so its not a single value
         with train_summary_writer.as_default():
             tf.summary.scalar('train_loss', loss_value, step=epoch)
-            tf.summary.scalar('train_iou', iou[0], step=epoch)
+            tf.summary.scalar('train_iou_plane', mean_iou['02691156'], step=epoch)
 
         # Save Model During Training
         if (epoch+1) % model_save_frequency == 0:
