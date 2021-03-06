@@ -30,7 +30,7 @@ VOXEL_PATH            = 'C:\\Users\\bidnu\\Documents\\Suraj_Docs\\3D_Project\\Sh
 # ----------------------------------------------Training Configuration------------------------------------------------ #
 
 input_shape = (224, 224, 3)  # input shape
-batch_size = 1  # batch size
+batch_size = 8  # batch size
 epochs = 4  # Number of epochs
 model_save_frequency = 2 # Save model every n epochs (specify n)
 
@@ -292,6 +292,8 @@ def calc_iou_loss(y_true, y_pred):
     '''
     # y_true = tf.convert_to_tensor(y_true)
     # y_pred = tf.convert_to_tensor(y_pred)
+    # print(y_true.shape)
+    # print(y_pred.shape)
     res = []
     bs = y_true.shape[0]
     for i in range(bs):
@@ -321,15 +323,26 @@ def calc_iou_loss(y_true, y_pred):
     return res
 
 # Test Values for IOU Loss
-# y_true = np.random.randint(0,2,size=(32, 32, 32)).astype(np.float32)
-# y_pred = np.random.random(size=(32,32,32)).astype(np.float32)
+# y_true = []
+# y_pred = []
+# for i in range(batch_size):
+#   y_true_temp = np.random.randint(0,2,size=(32, 32, 32)).astype(np.float32)
+#   # y_true = np.array([y_true_temp, y_true])
+#   y_true.append(y_true_temp)
+#   # y_true = np.concatenate((y_true_temp, ))
+#   # print(y_true.shape)
+#   y_pred_temp = np.random.random(size=(32,32,32)).astype(np.float32)
+#   y_pred.append(y_pred_temp)
+
+# y_true = np.array(y_true)
+# y_pred = np.array(y_pred)
 
 # ans = calc_iou_loss(y_true, y_pred)
-# print(ans)
+# # print(ans)
 # print("iou - {}".format(ans))
 
 # TODO: Function needs to be revisited, no return value specifiec
-def iou_dict_update(tax_id):
+def iou_dict_update(tax_id, test_iou, iou):
     '''
     Update IOU dictionary for each class.
     :param tax_id: Class ID
@@ -351,6 +364,8 @@ def iou_dict_update(tax_id):
       # mean_iou = []
       for taxonomy_id in test_iou:
           test_iou[taxonomy_id]['iou'] = test_iou[taxonomy_id]['iou'] / test_iou[taxonomy_id]['n_samples']
+
+    return test_iou
 
 # ----------------------------------------------Train Function-------------------------------------------------------- #
 
@@ -449,7 +464,7 @@ if __name__ == '__main__':
     # val_log_dir = 'logs/gradient_tape/' + current_time + '/val'
     # val_summary_writer = tf.summary.create_file_writer(val_log_dir)
 
-    mean_iou = list()
+    mean_iou = dict()
     mean_class_iou = list()
 
     # Training Loop
@@ -474,11 +489,15 @@ if __name__ == '__main__':
             iou = calc_iou_loss(y_batch_train, logits)
 
             # IoU dict update moved to iou_dict_update function
-            iou_dict_update(tax_id)
+            out_dict = iou_dict_update(tax_id, test_iou, iou)
 
             # mean_class_iou = []
             for taxonomy_id in test_iou:
-                mean_iou.append(test_iou[taxonomy_id]['iou'])
+                mean_iou[taxonomy_id] = []
+                mean_iou[taxonomy_id].append(out_dict[taxonomy_id]['iou'])
+
+            # print(out_dict)
+            # print(mean_iou)
             # mean_class_iou = json.loads(mean_class_iou) #JSONify the mean iou list containing mean iou for each class
             # mean_class_iou = json.dumps(mean_class_iou) #JSONify the mean iou list containing mean iou for each class
 
@@ -490,6 +509,11 @@ if __name__ == '__main__':
             # print(loss_value.numpy())
             # print(test_iou)
             # mean_class_iou = json.dumps(mean_iou) #JSONify the mean iou list containing mean iou for each class
+
+        for id in mean_iou:
+          mean_iou[id] = sum(mean_iou[id]) / len(mean_iou[id])
+
+        print(mean_iou)
 
         with train_summary_writer.as_default():
             tf.summary.scalar('train_loss', loss_value, step=epoch)
