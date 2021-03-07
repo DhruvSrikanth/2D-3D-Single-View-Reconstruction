@@ -36,6 +36,13 @@
 # Reset Changes Before Commit
 # git reset
 
+# Checkout To Different Branches
+# git checkout <branch_name>
+
+# Merge Two Branches
+# git checkout <branch_to_merge_into>
+# git merge <branch_to_merge_with>
+
 # Commit Changes To Local Git Repo
 # git commit -m "Message"
 
