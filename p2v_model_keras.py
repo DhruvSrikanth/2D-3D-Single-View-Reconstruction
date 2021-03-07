@@ -116,7 +116,7 @@ def tf_data_generator(file_list, batch_size=16):
     yield img, target, sample
     i = i + 1
 
-# TODO: look at data augmentation because there is a class imbalance of images
+# TODO: look at data augmentation because there is a class imbalance of images (Ask Sir)
 
 def tf_data_generator2(file_list):
     '''
@@ -347,8 +347,6 @@ def iou_dict_update(tax_id, iou_dict, iou):
     '''
     for i, j in enumerate(tax_id):
       if j not in iou_dict:
-        # TODO: Check this implementation. It is janky
-        # Seems to be what we were doing before so I think it's okay
         iou_dict[j] = {'n_samples': 0, 'iou': []}
 
       iou_dict[j]['n_samples'] += 1
@@ -356,16 +354,15 @@ def iou_dict_update(tax_id, iou_dict, iou):
 
     return iou_dict
 
-def calc_mean_iou(iou_dict, out_dict, mean_iou):
+def calc_mean_iou(iou_dict, mean_iou):
     '''
     Calculate mean iou for all classes based.
     :param iou_dict: IOU Dictionary for each class
-    :param out_dict: Output Dictionary for each class (after calculating IOU)
     :param mean_iou: variable to append mean IOU
     :return: Mean IOU Dictionary
     '''
     for taxonomy_id in iou_dict:
-        mean_iou[taxonomy_id] = sum(out_dict[taxonomy_id]['iou']) / len(out_dict[taxonomy_id]['iou'])
+        mean_iou[taxonomy_id] = sum(iou_dict[taxonomy_id]['iou']) / len(iou_dict[taxonomy_id]['iou'])
 
     return mean_iou
 
@@ -513,8 +510,8 @@ if __name__ == '__main__':
 
             iou = calc_iou_loss(y_batch_train, logits)
 
-            out_dict = iou_dict_update(tax_id, iou_dict, iou)
-            mean_iou_train = calc_mean_iou(iou_dict, out_dict, mean_iou_train)
+            iou_dict = iou_dict_update(tax_id, iou_dict, iou)
+            mean_iou_train = calc_mean_iou(iou_dict, mean_iou_train)
 
             values=[('train_loss', train_loss)]
 
@@ -522,8 +519,7 @@ if __name__ == '__main__':
 
         print("training iou: {}".format(mean_iou_train))
 
-        # TODO: can we overlap training and validation loss and iou graphs so that its easier to interpret rather than individual graphs
-        # We can overlap the two, but then it will become difficult to see all lines properly because we will have 13 classes for training and 13 for validation
+        # TODO: Training and Validation Loss -> 1 graph, Training and Validation IOU -> 1 graph (per class) or 1 graph (mean IOU over all classes)
         with train_summary_writer.as_default():
             tf.summary.scalar('train_loss', train_loss, step=epoch)
             tf.summary.scalar('train_iou_plane', mean_iou_train['02691156'], step=epoch)
@@ -538,8 +534,8 @@ if __name__ == '__main__':
             iou = calc_iou_loss(y_batch_val, logits)
 
             # IoU dict update moved to iou_dict_update function
-            out_dict = iou_dict_update(tax_id, iou_dict, iou)
-            mean_iou_val = calc_mean_iou(iou_dict, out_dict, mean_iou_val)
+            iou_dict = iou_dict_update(tax_id, iou_dict, iou)
+            mean_iou_val = calc_mean_iou(iou_dict, mean_iou_val)
 
         with val_summary_writer.as_default():
             tf.summary.scalar('val_loss', val_loss, step=epoch)
@@ -563,14 +559,16 @@ if __name__ == '__main__':
         iou = calc_iou_loss(y_batch_test, logits)
 
         # IoU dict update moved to iou_dict_update function
-        out_dict = iou_dict_update(tax_id, iou_dict, iou)
-        mean_iou_test = calc_mean_iou(iou_dict, out_dict, mean_iou_test)
+        iou_dict = iou_dict_update(tax_id, iou_dict, iou)
+        mean_iou_test = calc_mean_iou(iou_dict, mean_iou_test)
 
-    # TODO:check how to add test graphs to tensorboard because we don't have epoch information during testing phase
-    # this issue raises an error when you run the code
-    # Can we use a counter instead? Or we can use step instead. It'll just be a bit more of a fine grained graph cause there will be more steps so more points to plot
-    with test_summary_writer.as_default():
-        tf.summary.scalar('test_loss', val_loss)
-        tf.summary.scalar('test_iou_plane', mean_iou_val['02691156'])
+        # TODO:check how to add test graphs to tensorboard because we don't have epoch information during testing phase
+        # this issue raises an error when you run the code
+        # Can we use a counter instead? Or we can use step instead. It'll just be a bit more of a fine grained graph cause there will be more steps so more points to plot
+        with test_summary_writer.as_default():
+            tf.summary.scalar('test_loss', test_loss, step=step)
+            tf.summary.scalar('test_iou_plane', mean_iou_test['02691156'], step=step)
     
     print("testing iou: {}".format(mean_iou_test))
+    
+    
