@@ -30,8 +30,8 @@ VOXEL_PATH            = 'E:\\Datasets\\3D_Reconstruction\ShapeNetVox32\\{}\\{}\\
 # ----------------------------------------------Training Configuration------------------------------------------------ #
 
 input_shape = (224, 224, 3)  # input shape
-batch_size = 1  # batch size
-epochs = 4  # Number of epochs
+batch_size = 8  # batch size
+epochs = 16  # Number of epochs
 model_save_frequency = 2 # Save model every n epochs (specify n)
 
 # ----------------------------------------------Define Dataset Reader and Generator----------------------------------- #
@@ -547,8 +547,8 @@ if __name__ == '__main__':
         if (epoch+1) % model_save_frequency == 0:
             model_save_file_path = 'ae_model_epoch_{}.h5'.format(epoch+1)
             print("Saving Autoencoder Model at ", model_save_file_path)
-            tf.keras.models.save_model(model=autoencoder_model, filepath=model_save_file_path, overwrite=False, include_optimizer=True)
-            tf.keras.models.save_model(model=autoencoder_model, filepath=model_save_file_path, overwrite=False, include_optimizer=True)
+            tf.keras.models.save_model(model=autoencoder_model, filepath=model_save_file_path, overwrite=True, include_optimizer=True)
+            tf.keras.models.save_model(model=autoencoder_model, filepath=model_save_file_path, overwrite=True, include_optimizer=True)
 
     for step, (x_batch_test, y_batch_test, tax_id) in enumerate(test_dataset):
         tax_id = tax_id.numpy()
@@ -570,5 +570,4 @@ if __name__ == '__main__':
             tf.summary.scalar('test_iou_plane', mean_iou_test['02691156'], step=step)
     
     print("testing iou: {}".format(mean_iou_test))
-    
-    
+
