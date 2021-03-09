@@ -15,11 +15,17 @@ import binvox_rw
 import tensorflow as tf
 from tensorflow.keras.applications.vgg16 import VGG16
 
+from tqdm import tqdm
+
 # ----------------------------------------------Set Environment Variables--------------------------------------------- #
 
 os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 os.environ['TF_FORCE_GPU_ALLOW_GROWTH'] = 'true'
 # tf.debugging.set_log_device_placement(True)
+
+# the below 2 commands are to suppress some of the tf warning messages
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
+tf.get_logger().setLevel('ERROR')
 
 # ----------------------------------------------Set File Paths-------------------------------------------------------- #
 
@@ -35,15 +41,31 @@ VOXEL_PATH            = 'C:\\Users\\bidnu\\Documents\\Suraj_Docs\\3D_Project\\Sh
 
 input_shape = (224, 224, 3)  # input shape
 batch_size = 8  # batch size
-epochs = 16  # Number of epochs
+epochs = 1  # Number of epochs
 model_save_frequency = 2 # Save model every n epochs (specify n)
+
+# ------------------------------------------------Log status Function------------------------------------------------- #
+
+def logStatus(logLevel, msg):
+    """
+    Simple function to print log messages to console. \n
+    Three types: 1-ERROR, 2-WARN and 3-INFO\n
+    :param logLevel: Integer representing the log level\n
+    :param msg: the log message to display\n
+    :return: prints out the full log message with log level and corresponding message
+    """
+    logLevelString = {1: "[Error]", 2:"[WARN]", 3:"[INFO]"}
+
+    now = datetime.datetime.now()
+
+    print("{} {}:- {}".format(logLevelString[logLevel], now.strftime("%d-%m-%Y %H:%M:%S%f"), msg))
 
 # ----------------------------------------------Define Dataset Reader and Generator----------------------------------- #
 
 def read_taxonomy_JSON(filepath):
     '''
-    Read JSON file containing dataset taxonomy.
-    :param filepath: JSON file path
+    Read JSON file containing dataset taxonomy.\n
+    :param filepath: JSON file path\n
     :return: Un-JSON-ified dictionary
     '''
     with open(filepath, encoding='utf-8') as file:
@@ -52,16 +74,20 @@ def read_taxonomy_JSON(filepath):
 
 def get_xy_paths(taxonomy_dict, mode = 'train'):
     '''
-    Get list of file paths for x (images) and y (voxel models).
-    :param taxonomy_dict: Dataset Taxonomy Dictionary
-    :param mode: Dataset type -> 'train' (default), 'test'
+    Get list of file paths for x (images) and y (voxel models).\n
+    :param taxonomy_dict: Dataset Taxonomy Dictionary\n
+    :param mode: Dataset type -> 'train' (default), 'test'\n
     :return: List containing file path for x and corresponding y
     '''
     path_list = []
+    logStatus(3, "Starting to read input data files for {} phase now".format(mode))
     for i in range(len(taxonomy_dict)):
+        logStatus(3, "Reading files of Taxonomy ID: {}, Class {}".format(taxonomy_dict[i]["taxonomy_id"], 
+                                                                             taxonomy_dict[i]["taxonomy_name"]))
         for sample in taxonomy_dict[i][mode]:
             render_txt = os.path.join(RENDERING_PATH.format(taxonomy_dict[i]["taxonomy_id"], sample), "renderings.txt")
             if not os.path.exists(render_txt):
+                logStatus(2, "Could not find file: {}".format(render_txt))
                 continue
             with open(render_txt, 'r') as f:
                 while(1):
@@ -72,13 +98,15 @@ def get_xy_paths(taxonomy_dict, mode = 'train'):
                         img_path = os.path.join(RENDERING_PATH.format(taxonomy_dict[i]["taxonomy_id"], sample), value.strip('\n'))
                         target_path = VOXEL_PATH.format(taxonomy_dict[i]["taxonomy_id"], sample)
                         path_list.append([img_path, target_path, taxonomy_dict[i]["taxonomy_id"]])
+
+    logStatus(3, "Finished reading all the files")
     return path_list
 
 def tf_data_generator(file_list, batch_size=16):
     '''
-    Create generator from file path list.
-    :param file_list: List of file paths
-    :param batch_size: Batch Size
+    Create generator from file path list.\n
+    :param file_list: List of file paths\n
+    :param batch_size: Batch Size\n
     :return: Generator object
     '''
     i = 0
@@ -124,8 +152,8 @@ def tf_data_generator(file_list, batch_size=16):
 
 def tf_data_generator2(file_list):
     '''
-    Create generator from file path list.
-    :param file_list: List of file paths
+    Create generator from file path list.\n
+    :param file_list: List of file paths\n
     :return: Generator object
     '''
     for img, voxel, tax_id in file_list:
@@ -146,15 +174,15 @@ def tf_data_generator2(file_list):
 # Build complete autoencoder model
 def build_autoencoder(input_shape = (224, 224, 3)):
     '''
-    Build Autoencoder Model.
-    :param input_shape: Input Shape passed to Autoencoder Model (224,224,3) (default)
+    Build Autoencoder Model.\n
+    :param input_shape: Input Shape passed to Autoencoder Model (224,224,3) (default)\n
     :return: Autoencoder Model
     '''
     def encoder(inp, input_shape=(224,224,3)):
         '''
-        Build Encoder Model.
-        :param inp: Input to Autoencoder Model
-        :param input_shape: Input Shape passed to Autoencoder Model (224,224,3) (default)
+        Build Encoder Model.\n
+        :param inp: Input to Autoencoder Model\n
+        :param input_shape: Input Shape passed to Autoencoder Model (224,224,3) (default)\n
         :return: Encoder Model
         '''
         vgg = VGG16(include_top = False,
@@ -198,8 +226,8 @@ def build_autoencoder(input_shape = (224, 224, 3)):
 
     def decoder(inp):
         '''
-        Build Decoder Model.
-        :param inp: Reshaped Output of Encoder Model
+        Build Decoder Model.\n
+        :param inp: Reshaped Output of Encoder Model\n
         :return: Decoder Model
         '''
         layer1 = tf.keras.layers.Convolution3DTranspose(filters=128,
@@ -285,9 +313,9 @@ def build_autoencoder(input_shape = (224, 224, 3)):
 # Calculate IOU loss
 def calc_iou_loss(y_true, y_pred):
     '''
-    Calculate Intersection Over Union for the given batch
-    :param y_true: Target Voxel Output
-    :param y_pred: Predicted Voxel Output
+    Calculate Intersection Over Union for the given batch\n
+    :param y_true: Target Voxel Output\n
+    :param y_pred: Predicted Voxel Output\n
     :return: IoU for batch (list)
     '''
     # y_true = tf.convert_to_tensor(y_true)
@@ -343,10 +371,10 @@ def calc_iou_loss(y_true, y_pred):
 
 def iou_dict_update(tax_id, iou_dict, iou):
     '''
-    Update IOU dictionary for each class.
-    :param tax_id: Class ID
-    :param iou_dict: iou_dict Dictionary
-    :param iou: IOU List
+    Update IOU dictionary for each class.\n
+    :param tax_id: Class ID\n
+    :param iou_dict: iou_dict Dictionary\n
+    :param iou: IOU List\n
     :return: Updated IOU Dictionary
     '''
     for i, j in enumerate(tax_id):
@@ -360,9 +388,9 @@ def iou_dict_update(tax_id, iou_dict, iou):
 
 def calc_mean_iou(iou_dict, mean_iou):
     '''
-    Calculate mean iou for all classes based.
-    :param iou_dict: IOU Dictionary for each class
-    :param mean_iou: variable to append mean IOU
+    Calculate mean iou for all classes based.\n
+    :param iou_dict: IOU Dictionary for each class\n
+    :param mean_iou: variable to append mean IOU\n
     :return: Mean IOU Dictionary
     '''
     for taxonomy_id in iou_dict:
@@ -375,9 +403,9 @@ def calc_mean_iou(iou_dict, mean_iou):
 # Custom Train Function
 def my_train(x,y):
     '''
-    Compute training metrics for custom training loop.
-    :param x: input to model
-    :param y: output from model
+    Compute training metrics for custom training loop.\n
+    :param x: input to model\n
+    :param y: output from model\n
     :return: training metrics i.e loss
     '''
     # Open a GradientTape to record the operations run
@@ -495,6 +523,12 @@ if __name__ == '__main__':
 
     # Training Loop
     num_training_samples = len(train_path_list_sample)
+    num_validation_steps = len(val_path_list_sample) // batch_size
+    num_test_steps = len(test_path_list_sample) // batch_size
+
+    # bar_val = progressbar.ProgressBar(maxval=num_validation_samples).start()
+    # bar_test = progressbar.ProgressBar(maxval=num_test_samples).start()
+
     end_epoch = epochs
     for epoch in range(resume_epoch, end_epoch, 1):
         print("\nepoch {}/{}".format(epoch + 1, end_epoch))
@@ -521,15 +555,19 @@ if __name__ == '__main__':
 
             progBar.add(batch_size, values)
 
+        allClass_mean_iou = sum(mean_iou_train.values()) / len(mean_iou_train)
+      
         print("training iou: {}".format(mean_iou_train))
+        print("all class mean training iou: {}". format(allClass_mean_iou))
 
         # TODO: Training and Validation Loss -> 1 graph, Training and Validation IOU -> 1 graph (per class) or 1 graph (mean IOU over all classes)
         with train_summary_writer.as_default():
             tf.summary.scalar('train_loss', train_loss, step=epoch)
-            tf.summary.scalar('train_iou_plane', mean_iou_train['02691156'], step=epoch)
+            tf.summary.scalar('train_iou_plane', allClass_mean_iou, step=epoch)
 
         # Iterate over the batches of the dataset and calculate validation loss
-        for step, (x_batch_val, y_batch_val, tax_id) in enumerate(val_dataset):
+        logStatus(3,"Validation phase for epoch-{} running now".format(epoch+1))
+        for step, (x_batch_val, y_batch_val, tax_id) in tqdm(enumerate(val_dataset), total=num_validation_steps):
             tax_id = tax_id.numpy()
             tax_id = [item.decode("utf-8") for item in tax_id] # byte string (b'hello' to regular string 'hello')
 
@@ -541,11 +579,14 @@ if __name__ == '__main__':
             iou_dict = iou_dict_update(tax_id, iou_dict, iou)
             mean_iou_val = calc_mean_iou(iou_dict, mean_iou_val)
 
+        allClass_mean_iou = sum(mean_iou_val.values()) / len(mean_iou_val)
+
         with val_summary_writer.as_default():
             tf.summary.scalar('val_loss', val_loss, step=epoch)
-            tf.summary.scalar('val_iou_plane', mean_iou_val['02691156'], step=epoch)
+            tf.summary.scalar('val_iou_plane', allClass_mean_iou, step=epoch)
         
         print("validation iou: {}".format(mean_iou_val))
+        print("all class mean training iou: {}". format(allClass_mean_iou))
 
         # Save Model During Training
         if (epoch+1) % model_save_frequency == 0:
@@ -554,7 +595,8 @@ if __name__ == '__main__':
             tf.keras.models.save_model(model=autoencoder_model, filepath=model_save_file_path, overwrite=True, include_optimizer=True)
             tf.keras.models.save_model(model=autoencoder_model, filepath=model_save_file_path, overwrite=True, include_optimizer=True)
 
-    for step, (x_batch_test, y_batch_test, tax_id) in enumerate(test_dataset):
+    logStatus(3, "Testing phase running now")
+    for step, (x_batch_test, y_batch_test, tax_id) in tqdm(enumerate(test_dataset), total=num_test_steps):
         tax_id = tax_id.numpy()
         tax_id = [item.decode("utf-8") for item in tax_id] # byte string (b'hello' to regular string 'hello')
 
@@ -566,11 +608,16 @@ if __name__ == '__main__':
         iou_dict = iou_dict_update(tax_id, iou_dict, iou)
         mean_iou_test = calc_mean_iou(iou_dict, mean_iou_test)
 
+        allClass_mean_iou = sum(mean_iou_test.values()) / len(mean_iou_test)
+
         # TODO:check how to add test graphs to tensorboard because we don't have epoch information during testing phase
         # this issue raises an error when you run the code
         # Can we use a counter instead? Or we can use step instead. It'll just be a bit more of a fine grained graph cause there will be more steps so more points to plot
         with test_summary_writer.as_default():
             tf.summary.scalar('test_loss', test_loss, step=step)
-            tf.summary.scalar('test_iou_plane', mean_iou_test['02691156'], step=step)
+            tf.summary.scalar('test_iou_plane', allClass_mean_iou, step=step)
     
     print("testing iou: {}".format(mean_iou_test))
+    print("all class mean training iou: {}". format(allClass_mean_iou))
+
+    logStatus(3, "\nEnd of program execution")
