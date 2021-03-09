@@ -40,6 +40,12 @@
 # Delete Local Branch
 # git branch -d <branch_name>
 
+# Fix non fast forward error
+# git fetch origin <remote_branch>
+# git merge origin <remote_branch>
+# or
+# git pull --rebase origin master
+
 # -------------------------------------------------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------------------------------------------------- #
 
