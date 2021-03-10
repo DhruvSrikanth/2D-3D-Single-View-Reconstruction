@@ -10,7 +10,7 @@ import tensorflow as tf
 from tqdm import tqdm
 
 import config as cfg
-import logger as log
+from logger import logger
 import data
 import model
 import optimizer as op
@@ -76,6 +76,8 @@ def compute_train_metrics(x,y):
         # The operations that the layer applies
         # to its inputs are going to be recorded
         # on the GradientTape.
+
+        # TODO: check the training parameter in the below function
         logits = autoencoder_model(x, training=True)  # Logits for this minibatch
 
         # Compute the loss value for this minibatch.
@@ -100,43 +102,72 @@ if __name__ == '__main__':
     taxonomy_dict = data.read_taxonomy_JSON(TAXONOMY_FILE_PATH)
 
     # Get train path lists and train data generator
-    train_path_list = data.get_xy_paths(taxonomy_dict=taxonomy_dict, rendering_path=RENDERING_PATH, voxel_path=VOXEL_PATH, mode='train')
+    train_path_list = data.get_xy_paths(taxonomy_dict=taxonomy_dict,
+                                        rendering_path=RENDERING_PATH,
+                                        voxel_path=VOXEL_PATH,
+                                        mode='train')
+
     train_path_list_sample = train_path_list[:100] + train_path_list[-100:]  # just for testing purposes
-    train_dataset = tf.data.Dataset.from_generator(data.tf_data_generator, args=[train_path_list_sample], output_types = (tf.float32, tf.float32, tf.string))
+
+    train_dataset = tf.data.Dataset.from_generator(data.tf_data_generator,
+                                                   args=[train_path_list_sample],
+                                                   output_types = (tf.float32, tf.float32, tf.string))
+
     train_dataset = train_dataset.batch(batch_size).shuffle(150).prefetch(tf.data.AUTOTUNE)
 
     # Get validation path lists and validation data generator
-    val_path_list = data.get_xy_paths(taxonomy_dict=taxonomy_dict, rendering_path=RENDERING_PATH, voxel_path=VOXEL_PATH, mode='val')
+    val_path_list = data.get_xy_paths(taxonomy_dict=taxonomy_dict,
+                                      rendering_path=RENDERING_PATH,
+                                      voxel_path=VOXEL_PATH,
+                                      mode='val')
+
     val_path_list_sample = val_path_list[:20] + val_path_list[-20:]  # just for testing purposes
-    val_dataset = tf.data.Dataset.from_generator(data.tf_data_generator, args=[val_path_list_sample],output_types = (tf.float32, tf.float32, tf.string))
+
+    val_dataset = tf.data.Dataset.from_generator(data.tf_data_generator,
+                                                 args=[val_path_list_sample],
+                                                 output_types = (tf.float32, tf.float32, tf.string))
+
     val_dataset = val_dataset.batch(batch_size).shuffle(150).prefetch(tf.data.AUTOTUNE)
 
     # Get test path lists and test data generator
-    test_path_list = data.get_xy_paths(taxonomy_dict=taxonomy_dict, rendering_path=RENDERING_PATH, voxel_path=VOXEL_PATH, mode='test')
+    test_path_list = data.get_xy_paths(taxonomy_dict=taxonomy_dict,
+                                       rendering_path=RENDERING_PATH,
+                                       voxel_path=VOXEL_PATH,
+                                       mode='test')
+
     test_path_list_sample = test_path_list[:20] + test_path_list[-20:]  # just for testing purposes
-    test_dataset = tf.data.Dataset.from_generator(data.tf_data_generator, args=[test_path_list_sample],output_types = (tf.float32, tf.float32, tf.string))
+
+    test_dataset = tf.data.Dataset.from_generator(data.tf_data_generator,
+                                                  args=[test_path_list_sample],
+                                                  output_types = (tf.float32, tf.float32, tf.string))
+
     test_dataset = test_dataset.batch(batch_size).shuffle(150).prefetch(tf.data.AUTOTUNE)
 
     # Load Model and Resume Training, otherwise Start Training
 
     # Check if model save path exists
     if not os.path.isdir(checkpoint_path):
-        print("\nNo model save directory found...\nCreating model save directory at - ", checkpoint_path)
+        # print("\nNo model save directory found...\nCreating model save directory at - ", checkpoint_path)
+        logger.info("No model save directory found, so creating directory at -> {0}".format(checkpoint_path))
         os.mkdir(checkpoint_path)
     else:
-        print("\nFound model save directory at - ", checkpoint_path)
+        # print("\nFound model save directory at - ", checkpoint_path)
+        logger.info("Found model save directory at -> {0}".format(checkpoint_path))
 
     saved_model_files = glob.glob(checkpoint_path + "\*.h5")
     if len(saved_model_files) == 0:
         resume_epoch = 0
-        autoencoder_model = model.build_autoencoder(input_shape, describe=True)
-        print("\nStarting Training")
+        autoencoder_model = model.build_autoencoder(input_shape, describe=False)
+        # print("\nStarting Training")
+        logger.info("Starting Training phase")
     else:
         latest_model = os.path.join(checkpoint_path, saved_model_files[-1])
         autoencoder_model = tf.keras.models.load_model(latest_model, compile=False)
         resume_epoch = int(latest_model.split("_")[-1].split(".")[0])
-        print("\nResuming Training On Epoch -> ", resume_epoch + 1)
-        print("\nLoading Model From -> ", latest_model)
+        # print("\nResuming Training On Epoch -> ", resume_epoch + 1)
+        logger.info("Resuming Training on Epoch -> {0}".format(resume_epoch + 1))
+        # print("\nLoading Model From -> ", latest_model)
+        logger.info("Loading Model from -> {0}".format(latest_model))
 
     # Loss
     loss_fn = tf.keras.losses.BinaryCrossentropy(from_logits=True)
@@ -209,8 +240,8 @@ if __name__ == '__main__':
 
         allClass_mean_iou = sum(mean_iou_train.values()) / len(mean_iou_train)
       
-        print("training iou: {}".format(mean_iou_train))
-        print("all class mean training iou: {}". format(allClass_mean_iou))
+        logger.info("Training IoU -> {0}".format(mean_iou_train))
+        logger.info("Overall mean Training IoU -> {0}".format(allClass_mean_iou))
 
         # TODO: Training and Validation Loss -> 1 graph, Training and Validation IOU (mean IOU over all classes)
         with train_summary_writer.as_default():
@@ -218,7 +249,7 @@ if __name__ == '__main__':
             tf.summary.scalar('train_iou_plane', allClass_mean_iou, step=epoch)
 
         # Iterate over the batches of the dataset and calculate validation loss
-        log.log_status(3,"Validation phase for epoch-{} running now".format(epoch+1))
+        logger.info("Validation phase running now for Epoch - {0}".format(epoch+1))
         for step, (x_batch_val, y_batch_val, tax_id) in tqdm(enumerate(val_dataset), total=num_validation_steps):
             tax_id = tax_id.numpy()
             tax_id = [item.decode("utf-8") for item in tax_id] # byte string (b'hello' to regular string 'hello')
@@ -235,19 +266,19 @@ if __name__ == '__main__':
 
         with val_summary_writer.as_default():
             tf.summary.scalar('val_loss', val_loss, step=epoch)
-            tf.summary.scalar('val_iou_plane', allClass_mean_iou, step=epoch)
+            tf.summary.scalar('overall_val_iou', allClass_mean_iou, step=epoch)
         
-        print("validation iou: {}".format(mean_iou_val))
-        print("all class mean training iou: {}". format(allClass_mean_iou))
+        logger.info("Validation IoU -> {0}".format(mean_iou_val))
+        logger.info("Overall mean Training IoU -> {0}".format(allClass_mean_iou))
 
         # Save Model During Training
         if (epoch+1) % model_save_frequency == 0:
-            model_save_file = 'ae_model_epoch_{}.h5'.format(epoch+1)
+            model_save_file = 'ae_model_epoch_{0}.h5'.format(epoch+1)
             model_save_file_path = os.path.join(checkpoint_path, model_save_file)
-            print("Saving Autoencoder Model at ", model_save_file_path)
+            logger.info("Saving Autoencoder Model at {0}".format(model_save_file_path))
             tf.keras.models.save_model(model=autoencoder_model, filepath=model_save_file_path, overwrite=True, include_optimizer=True)
 
-    log.log_status(3, "Testing phase running now")
+    logger.info("Testing phase running now")
     for step, (x_batch_test, y_batch_test, tax_id) in tqdm(enumerate(test_dataset), total=num_test_steps):
         tax_id = tax_id.numpy()
         tax_id = [item.decode("utf-8") for item in tax_id] # byte string (b'hello' to regular string 'hello')
@@ -264,9 +295,9 @@ if __name__ == '__main__':
 
         with test_summary_writer.as_default():
             tf.summary.scalar('test_loss', test_loss, step=step)
-            tf.summary.scalar('test_iou_plane', allClass_mean_iou, step=step)
+            tf.summary.scalar('overall_test_iou', allClass_mean_iou, step=step)
     
-    print("testing iou: {}".format(mean_iou_test))
-    print("all class mean training iou: {}". format(allClass_mean_iou))
+    logger.info("Testing IoU -> {0}".format(mean_iou_test))
+    logger.info("Overall mean Testing IoU -> {0}". format(allClass_mean_iou))
 
-    log.log_status(3, "\nEnd of program execution")
+    logger.info("End of program execution")
