@@ -13,7 +13,7 @@ import config as cfg
 from logger import logger_train
 import data
 import model
-import optimizer as op
+import metrics as metr
 
 # ----------------------------------------------Set Environment Variables--------------------------------------------- #
 
@@ -34,7 +34,7 @@ parser.add_argument('--taxonomy_path', type=str, default=cfg.TAXONOMY_FILE_PATH,
 parser.add_argument('--render_path', type=str, default=cfg.RENDERING_PATH, help='Specify the rendering images path.')
 parser.add_argument('--voxel_path', type=str, default=cfg.VOXEL_PATH, help='Specify the voxel models path.')
 
-parser.add_argument('--bs', type=int, default=cfg.batch_size, help='Batch size.')
+parser.add_argument('--batch_size', type=int, default=cfg.batch_size, help='Batch size.')
 parser.add_argument('--epochs', type=int, default=cfg.epochs, help='Number of epochs.')
 parser.add_argument('--lr', type=float, default=cfg.learning_rate, help='Learning rate.')
 
@@ -65,8 +65,8 @@ logger = logger_train
 
 # ----------------------------------------------Train Function-------------------------------------------------------- #
 
-# Custom Train Function
-def compute_train_metrics(x,y):
+# Compute Loss
+def compute_train_metrics(x,y, mode="Train"):
     '''
     Compute training metrics for custom training loop.\n
     :param x: input to model\n
@@ -87,13 +87,15 @@ def compute_train_metrics(x,y):
         # Compute the loss value for this minibatch.
         loss_value = loss_fn(y, logits)
 
-    # Use the gradient tape to automatically retrieve
-    # the gradients of the trainable variables with respect to the loss.
-    grads = tape.gradient(loss_value, autoencoder_model.trainable_weights)
+    if mode == "train":
 
-    # Run one step of gradient descent by updating
-    # the value of the variables to minimize the loss.
-    opt.apply_gradients(zip(grads, autoencoder_model.trainable_weights))
+        # Use the gradient tape to automatically retrieve
+        # the gradients of the trainable variables with respect to the loss.
+        grads = tape.gradient(loss_value, autoencoder_model.trainable_weights)
+
+        # Run one step of gradient descent by updating
+        # the value of the variables to minimize the loss.
+        opt.apply_gradients(zip(grads, autoencoder_model.trainable_weights))
 
     return loss_value, logits
 
@@ -148,15 +150,12 @@ if __name__ == '__main__':
     if len(saved_model_files) == 0:
         resume_epoch = 0
         autoencoder_model = model.build_autoencoder(input_shape, describe=False)
-        # print("\nStarting Training")
         logger.info("Starting Training phase")
     else:
         latest_model = os.path.join(checkpoint_path, saved_model_files[-1])
         autoencoder_model = tf.keras.models.load_model(latest_model, compile=False)
         resume_epoch = int(latest_model.split("_")[-1].split(".")[0])
-        # print("\nResuming Training On Epoch -> ", resume_epoch + 1)
         logger.info("Resuming Training on Epoch -> {0}".format(resume_epoch + 1))
-        # print("\nLoading Model From -> ", latest_model)
         logger.info("Loading Model from -> {0}".format(latest_model))
 
     # Loss
@@ -191,8 +190,6 @@ if __name__ == '__main__':
     num_training_samples = len(train_path_list_sample)
     num_validation_steps = len(val_path_list_sample) // batch_size
 
-    # bar_val = progressbar.ProgressBar(maxval=num_validation_samples).start()
-
     end_epoch = epochs
     for epoch in range(resume_epoch, end_epoch, 1):
         print("\nepoch {}/{}".format(epoch + 1, end_epoch))
@@ -208,12 +205,12 @@ if __name__ == '__main__':
             tax_id = tax_id.numpy()
             tax_id = [item.decode("utf-8") for item in tax_id] # byte string (b'hello' to regular string 'hello')
 
-            train_loss, logits = compute_train_metrics(x_batch_train, y_batch_train)
+            train_loss, logits = compute_train_metrics(x_batch_train, y_batch_train, "train")
 
-            iou = op.calc_iou_loss(y_batch_train, logits)
+            iou = metr.calc_iou_loss(y_batch_train, logits)
 
-            iou_dict = op.iou_dict_update(tax_id, iou_dict, iou)
-            mean_iou_train = op.calc_mean_iou(iou_dict, mean_iou_train)
+            iou_dict = metr.iou_dict_update(tax_id, iou_dict, iou)
+            mean_iou_train = metr.calc_mean_iou(iou_dict, mean_iou_train)
 
             values=[('train_loss', train_loss)]
 
@@ -235,13 +232,13 @@ if __name__ == '__main__':
             tax_id = tax_id.numpy()
             tax_id = [item.decode("utf-8") for item in tax_id] # byte string (b'hello' to regular string 'hello')
 
-            val_loss, logits = compute_train_metrics(x_batch_val, y_batch_val)
+            val_loss, logits = compute_train_metrics(x_batch_val, y_batch_val, "val")
 
-            iou = op.calc_iou_loss(y_batch_val, logits)
+            iou = metr.calc_iou_loss(y_batch_val, logits)
 
             # IoU dict update moved to iou_dict_update function
-            iou_dict = op.iou_dict_update(tax_id, iou_dict, iou)
-            mean_iou_val = op.calc_mean_iou(iou_dict, mean_iou_val)
+            iou_dict = metr.iou_dict_update(tax_id, iou_dict, iou)
+            mean_iou_val = metr.calc_mean_iou(iou_dict, mean_iou_val)
 
         allClass_mean_iou = sum(mean_iou_val.values()) / len(mean_iou_val)
 

@@ -8,7 +8,7 @@ import cv2
 from PIL import Image
 import binvox_rw
 
-from logger import logger
+from logger import logger_train, logger_test
 
 # ----------------------------------------------Define Dataset Reader and Generator----------------------------------- #
 
@@ -29,18 +29,19 @@ def get_xy_paths(taxonomy_dict, rendering_path, voxel_path, mode = 'train'):
     :param mode: Dataset type -> 'train' (default), 'test'\n
     :return: List containing file path for x and corresponding y
     '''
+    if mode == "test":
+        logger = logger_test
+    else:
+        logger = logger_train
+        
     path_list = []
-    # log.log_status(3, "Starting to read input data files for {} phase now".format(mode))
     logger.info("Starting to read input data files for {0} phase now".format(mode))
     for i in range(len(taxonomy_dict)):
-        # log.log_status(3, "Reading files of Taxonomy ID: {}, Class {}".format(taxonomy_dict[i]["taxonomy_id"],
-        #                                                                      taxonomy_dict[i]["taxonomy_name"]))
         logger.info("Reading files of Taxonomy ID -> {0}, Class ->{1}".format(taxonomy_dict[i]["taxonomy_id"],
                                                                              taxonomy_dict[i]["taxonomy_name"]))
         for sample in taxonomy_dict[i][mode]:
             render_txt = os.path.join(rendering_path.format(taxonomy_dict[i]["taxonomy_id"], sample), "renderings.txt")
             if not os.path.exists(render_txt):
-                # log.log_status(2, "Could not find file: {}".format(render_txt))
                 logger.warn("Could not find file -> {0}".format(render_txt))
                 continue
             with open(render_txt, 'r') as f:
@@ -54,7 +55,6 @@ def get_xy_paths(taxonomy_dict, rendering_path, voxel_path, mode = 'train'):
                         target_path = voxel_path.format(taxonomy_dict[i]["taxonomy_id"], sample)
                         path_list.append([img_path, target_path, taxonomy_dict[i]["taxonomy_id"]])
 
-    # log.log_status(3, "Finished reading all the files")
     logger.info("Finished reading all the files")
     return path_list
 
@@ -70,7 +70,6 @@ def tf_data_generator(file_list):
     '''
     for img, voxel, tax_id in file_list:
         rgba_in = Image.open(img)
-        # rgba_in.load()
         background = Image.new("RGB", rgba_in.size, (255, 255, 255))
         background.paste(rgba_in, mask=rgba_in.split()[3]) # 3 is the alpha channel
         rendering_image = cv2.resize(np.array(background).astype(np.float32), (224,224)) / 255.

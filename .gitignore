@@ -1,5 +1,3 @@
 __pycache__/
-*.h5
 logs/
-*.log
 saved_models/

@@ -12,7 +12,7 @@ from tqdm import tqdm
 import config as cfg
 from logger import logger_test
 import data
-import optimizer as op
+import metrics as metr
 
 # ----------------------------------------------Set Environment Variables--------------------------------------------- #
 
@@ -32,11 +32,7 @@ parser = argparse.ArgumentParser(description='3D Reconstruction Using an Autoenc
 parser.add_argument('--taxonomy_path', type=str, default=cfg.TAXONOMY_FILE_PATH, help='Specify the taxonomy file path.')
 parser.add_argument('--render_path', type=str, default=cfg.RENDERING_PATH, help='Specify the rendering images path.')
 parser.add_argument('--voxel_path', type=str, default=cfg.VOXEL_PATH, help='Specify the voxel models path.')
-
-parser.add_argument('--bs', type=int, default=cfg.batch_size, help='Batch size.')
-parser.add_argument('--lr', type=float, default=cfg.learning_rate, help='Learning rate.')
-
-parser.add_argument('--model_save_frequency', type=int, default=cfg.model_save_frequency, help='Model save frequency.')
+parser.add_argument('--batch_size', type=int, default=cfg.batch_size, help='Batch size.')
 parser.add_argument('--checkpoint_path', type=str, default=cfg.checkpoint_path, help='Start training from existing models.')
 
 args = parser.parse_args()
@@ -47,22 +43,19 @@ TAXONOMY_FILE_PATH    = args.taxonomy_path
 RENDERING_PATH        = args.render_path
 VOXEL_PATH            = args.voxel_path
 
-# ----------------------------------------------Training Configuration------------------------------------------------ #
+# ----------------------------------------------Testing Configuration------------------------------------------------ #
 
 input_shape = cfg.input_shape
 batch_size = args.bs
-learning_rate = args.lr
-boundaries = cfg.boundaries
-model_save_frequency = args.model_save_frequency
 checkpoint_path = args.checkpoint_path
 
 # ----------------------------------------------Set Logger------------------------------------------------------------ #
 
 logger = logger_test
 
-# ----------------------------------------------Train Function-------------------------------------------------------- #
+# ----------------------------------------------Test Function-------------------------------------------------------- #
 
-# Custom Train Function
+# Compute loss
 def compute_train_metrics(x,y):
     '''
     Compute training metrics for custom training loop.\n
@@ -78,19 +71,11 @@ def compute_train_metrics(x,y):
         # to its inputs are going to be recorded
         # on the GradientTape.
 
-        # TODO: check the training parameter in the below function
-        logits = autoencoder_model(x, training=True)  # Logits for this minibatch
+        # TODO: check the training=True parameter in the below function
+        logits = autoencoder_model(x, training=False)  # Logits for this minibatch
 
         # Compute the loss value for this minibatch.
         loss_value = loss_fn(y, logits)
-
-    # Use the gradient tape to automatically retrieve
-    # the gradients of the trainable variables with respect to the loss.
-    grads = tape.gradient(loss_value, autoencoder_model.trainable_weights)
-
-    # Run one step of gradient descent by updating
-    # the value of the variables to minimize the loss.
-    opt.apply_gradients(zip(grads, autoencoder_model.trainable_weights))
 
     return loss_value, logits
 
@@ -116,37 +101,29 @@ if __name__ == '__main__':
 
     test_dataset = test_dataset.batch(batch_size).shuffle(150).prefetch(tf.data.AUTOTUNE)
 
-    # Load Model and Resume Training, otherwise Start Training
+    # Load Model for Testing phase
 
     # Check if model save path exists
     if not os.path.isdir(checkpoint_path):
-        # print("\nNo model save directory found...\nCreating model save directory at - ", checkpoint_path)
-        logger.info("No model save directory found, so creating directory at -> {0}".format(checkpoint_path))
-        # os.mkdir(checkpoint_path)
+        logger.error("No saved model found. Please run train.py to train a model and save it for Testing purposes")
         exit()
     else:
-        # print("\nFound model save directory at - ", checkpoint_path)
-        logger.info("Found model save directory at -> {0}".format(checkpoint_path))
+        saved_model_files = glob.glob(checkpoint_path + "\*.h5")
+        if len(saved_model_files) == 0:
+            logger.error("No saved model found. Please run train.py to train a model and save it for Testing purposes")
+            exit()
+        else:
+            logger.info("Found model save directory at -> {0}".format(checkpoint_path))
 
     saved_model_files = glob.glob(checkpoint_path + "\*.h5")
     latest_model = os.path.join(checkpoint_path, saved_model_files[-1])
     autoencoder_model = tf.keras.models.load_model(latest_model, compile=False)
-    resume_epoch = int(latest_model.split("_")[-1].split(".")[0])
-    # print("\nResuming Training On Epoch -> ", resume_epoch + 1)
-    logger.info("Resuming Training on Epoch -> {0}".format(resume_epoch + 1))
-    # print("\nLoading Model From -> ", latest_model)
+    print(autoencoder_model.summary())
+    
     logger.info("Loading Model from -> {0}".format(latest_model))
 
     # Loss
     loss_fn = tf.keras.losses.BinaryCrossentropy(from_logits=True)
-
-    # Learning Rate Scheduler
-    # learning rate becomes 0.01*0.5 after 150 epochs else it is 0.01*1.0
-    values = [learning_rate, learning_rate * 0.5]
-    learning_rate_fn = tf.keras.optimizers.schedules.PiecewiseConstantDecay(boundaries, values)
-
-    # Optimizer
-    opt = tf.keras.optimizers.Adam()
 
     # Tensorboard Graph
     current_time = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -161,7 +138,7 @@ if __name__ == '__main__':
     # Training Loop
     num_test_steps = len(test_path_list_sample) // batch_size
 
-    # bar_test = progressbar.ProgressBar(maxval=num_test_samples).start()
+    iou_dict = dict()
 
     logger.info("Testing phase running now")
     for step, (x_batch_test, y_batch_test, tax_id) in tqdm(enumerate(test_dataset), total=num_test_steps):
@@ -170,11 +147,11 @@ if __name__ == '__main__':
 
         test_loss, logits = compute_train_metrics(x_batch_test, y_batch_test)
 
-        iou = op.calc_iou_loss(y_batch_test, logits)
+        iou = metr.calc_iou_loss(y_batch_test, logits)
 
         # IoU dict update moved to iou_dict_update function
-        iou_dict = op.iou_dict_update(tax_id, iou_dict, iou)
-        mean_iou_test = op.calc_mean_iou(iou_dict, mean_iou_test)
+        iou_dict = metr.iou_dict_update(tax_id, iou_dict, iou)
+        mean_iou_test = metr.calc_mean_iou(iou_dict, mean_iou_test)
 
         allClass_mean_iou = sum(mean_iou_test.values()) / len(mean_iou_test)
 
