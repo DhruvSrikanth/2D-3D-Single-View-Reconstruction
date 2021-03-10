@@ -5,12 +5,20 @@ import sys
 
 # ------------------------------------------------Log status Function------------------------------------------------- #
 
-logger = logging.getLogger('')
-logger.setLevel(logging.INFO)
-fh = logging.FileHandler('train.log')
 sh = logging.StreamHandler(sys.stdout)
 formatter = logging.Formatter('[%(asctime)s] %(levelname)s: %(message)s', datefmt='%a, %d %b %Y %H:%M:%S')
-fh.setFormatter(formatter)
 sh.setFormatter(formatter)
-logger.addHandler(fh)
-logger.addHandler(sh)
+
+logger_train = logging.getLogger('')
+logger_train.setLevel(logging.INFO)
+fh_train = logging.FileHandler('train.log')
+fh_train.setFormatter(formatter)
+logger_train.addHandler(fh_train)
+logger_train.addHandler(sh)
+
+logger_test = logging.getLogger('')
+logger_test.setLevel(logging.INFO)
+fh_test = logging.FileHandler('test.log')
+fh_test.setFormatter(formatter)
+logger_test.addHandler(fh_test)
+logger_test.addHandler(sh)

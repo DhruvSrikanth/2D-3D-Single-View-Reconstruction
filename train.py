@@ -10,7 +10,7 @@ import tensorflow as tf
 from tqdm import tqdm
 
 import config as cfg
-from logger import logger
+from logger import logger_train
 import data
 import model
 import optimizer as op
@@ -58,6 +58,10 @@ learning_rate = args.lr
 boundaries = cfg.boundaries
 model_save_frequency = args.model_save_frequency
 checkpoint_path = args.checkpoint_path
+
+# ----------------------------------------------Set Logger------------------------------------------------------------ #
+
+logger = logger_train
 
 # ----------------------------------------------Train Function-------------------------------------------------------- #
 
@@ -129,20 +133,6 @@ if __name__ == '__main__':
 
     val_dataset = val_dataset.batch(batch_size).shuffle(150).prefetch(tf.data.AUTOTUNE)
 
-    # Get test path lists and test data generator
-    test_path_list = data.get_xy_paths(taxonomy_dict=taxonomy_dict,
-                                       rendering_path=RENDERING_PATH,
-                                       voxel_path=VOXEL_PATH,
-                                       mode='test')
-
-    test_path_list_sample = test_path_list[:20] + test_path_list[-20:]  # just for testing purposes
-
-    test_dataset = tf.data.Dataset.from_generator(data.tf_data_generator,
-                                                  args=[test_path_list_sample],
-                                                  output_types = (tf.float32, tf.float32, tf.string))
-
-    test_dataset = test_dataset.batch(batch_size).shuffle(150).prefetch(tf.data.AUTOTUNE)
-
     # Load Model and Resume Training, otherwise Start Training
 
     # Check if model save path exists
@@ -191,26 +181,17 @@ if __name__ == '__main__':
     val_log_dir = 'logs/gradient_tape/' + current_time + '/val'
     val_summary_writer = tf.summary.create_file_writer(val_log_dir)
 
-    # tensorboard writer for testing values
-    test_log_dir = 'logs/gradient_tape/' + current_time + '/test'
-    test_summary_writer = tf.summary.create_file_writer(test_log_dir)
-
     # dictionary holds mean iou of each class for training data
     mean_iou_train = dict()
 
     # dictionary holds mean iou of each class for validation data
     mean_iou_val = dict()
 
-    # dictionary holds mean iou of each class for testing data
-    mean_iou_test = dict()
-
     # Training Loop
     num_training_samples = len(train_path_list_sample)
     num_validation_steps = len(val_path_list_sample) // batch_size
-    num_test_steps = len(test_path_list_sample) // batch_size
 
     # bar_val = progressbar.ProgressBar(maxval=num_validation_samples).start()
-    # bar_test = progressbar.ProgressBar(maxval=num_test_samples).start()
 
     end_epoch = epochs
     for epoch in range(resume_epoch, end_epoch, 1):
@@ -277,27 +258,5 @@ if __name__ == '__main__':
             model_save_file_path = os.path.join(checkpoint_path, model_save_file)
             logger.info("Saving Autoencoder Model at {0}".format(model_save_file_path))
             tf.keras.models.save_model(model=autoencoder_model, filepath=model_save_file_path, overwrite=True, include_optimizer=True)
-
-    logger.info("Testing phase running now")
-    for step, (x_batch_test, y_batch_test, tax_id) in tqdm(enumerate(test_dataset), total=num_test_steps):
-        tax_id = tax_id.numpy()
-        tax_id = [item.decode("utf-8") for item in tax_id] # byte string (b'hello' to regular string 'hello')
-
-        test_loss, logits = compute_train_metrics(x_batch_test, y_batch_test)
-
-        iou = op.calc_iou_loss(y_batch_test, logits)
-
-        # IoU dict update moved to iou_dict_update function
-        iou_dict = op.iou_dict_update(tax_id, iou_dict, iou)
-        mean_iou_test = op.calc_mean_iou(iou_dict, mean_iou_test)
-
-        allClass_mean_iou = sum(mean_iou_test.values()) / len(mean_iou_test)
-
-        with test_summary_writer.as_default():
-            tf.summary.scalar('test_loss', test_loss, step=step)
-            tf.summary.scalar('overall_test_iou', allClass_mean_iou, step=step)
-    
-    logger.info("Testing IoU -> {0}".format(mean_iou_test))
-    logger.info("Overall mean Testing IoU -> {0}". format(allClass_mean_iou))
 
     logger.info("End of program execution")
