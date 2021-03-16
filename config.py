@@ -5,7 +5,7 @@ import os
 # ----------------------------------------------Set File Paths-------------------------------------------------------- #
 
 # Dhruv
-TAXONOMY_FILE_PATH    = 'E:\\Projects\\3D_Reconstruction\\3DR_src\\ShapeNet.json'
+TAXONOMY_FILE_PATH    = 'E:\\Projects\\3D_Reconstruction\\3DR_src\\ShapeNet_original.json' # 'E:\\Projects\\3D_Reconstruction\\3DR_src\\ShapeNet.json'
 RENDERING_PATH        = 'E:\\Datasets\\3D_Reconstruction\ShapeNetRendering\\{}\\{}\\rendering'
 VOXEL_PATH            = 'E:\\Datasets\\3D_Reconstruction\ShapeNetVox32\\{}\\{}\\model.binvox'
 
@@ -22,9 +22,9 @@ VOXEL_PATH            = 'E:\\Datasets\\3D_Reconstruction\ShapeNetVox32\\{}\\{}\\
 # ----------------------------------------------Training Configuration------------------------------------------------ #
 
 input_shape = (224, 224, 3)  # input shape
-batch_size = 1  # batch size
-epochs = 4  # Number of epochs
+batch_size = 4  # batch size
+epochs = 2 # Number of epochs
 learning_rate = 0.001 # Learning rate
 boundaries = [150] # Boundary epoch for learning rate scheduler
-model_save_frequency = 2 # Save model every n epochs (specify n)
+model_save_frequency = 1 # Save model every n epochs (specify n)
 checkpoint_path = os.path.join(os.getcwd(), 'saved_models') # Model save path

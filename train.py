@@ -117,7 +117,7 @@ if __name__ == '__main__':
                                         mode='train')
 
     # train_path_list_sample = train_path_list[:5000] + train_path_list[-5000:]  # just for testing purposes
-    train_path_list_sample = train_path_list[:1000]
+    train_path_list_sample = train_path_list # [:1000]
 
     train_dataset = tf.data.Dataset.from_generator(data.tf_data_generator,
                                                    args=[train_path_list_sample],
@@ -131,7 +131,7 @@ if __name__ == '__main__':
                                       voxel_path=VOXEL_PATH,
                                       mode='val')
 
-    val_path_list_sample = val_path_list[:20] + val_path_list[-20:]  # just for testing purposes
+    val_path_list_sample = val_path_list #val_path_list[:20] + val_path_list[-20:]  # just for testing purposes
 
     val_dataset = tf.data.Dataset.from_generator(data.tf_data_generator,
                                                  args=[val_path_list_sample],
