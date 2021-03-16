@@ -14,6 +14,7 @@ from logger import logger_train
 import data
 import model
 import metrics as metr
+import saveiou
 
 # ----------------------------------------------Set Environment Variables--------------------------------------------- #
 
@@ -39,20 +40,21 @@ parser.add_argument('--epochs', type=int, default=cfg.epochs, help='Number of ep
 parser.add_argument('--lr', type=float, default=cfg.learning_rate, help='Learning rate.')
 
 parser.add_argument('--model_save_frequency', type=int, default=cfg.model_save_frequency, help='Model save frequency.')
-parser.add_argument('--checkpoint_path', type=str, default=cfg.checkpoint_path, help='Start training from existing models.')
+parser.add_argument('--checkpoint_path', type=str, default=cfg.checkpoint_path,
+                    help='Start training from existing models.')
 
 args = parser.parse_args()
 
 # ----------------------------------------------Set File Paths-------------------------------------------------------- #
 
-TAXONOMY_FILE_PATH    = args.taxonomy_path
-RENDERING_PATH        = args.render_path
-VOXEL_PATH            = args.voxel_path
+TAXONOMY_FILE_PATH = args.taxonomy_path
+RENDERING_PATH = args.render_path
+VOXEL_PATH = args.voxel_path
 
 # ----------------------------------------------Training Configuration------------------------------------------------ #
 
 input_shape = cfg.input_shape
-batch_size = args.bs
+batch_size = args.batch_size
 epochs = args.epochs
 learning_rate = args.lr
 boundaries = cfg.boundaries
@@ -63,10 +65,11 @@ checkpoint_path = args.checkpoint_path
 
 logger = logger_train
 
+
 # ----------------------------------------------Train Function-------------------------------------------------------- #
 
 # Compute Loss
-def compute_train_metrics(x,y, mode="Train"):
+def compute_train_metrics(x, y, mode="Train"):
     '''
     Compute training metrics for custom training loop.\n
     :param x: input to model\n
@@ -88,7 +91,6 @@ def compute_train_metrics(x,y, mode="Train"):
         loss_value = loss_fn(y, logits)
 
     if mode == "train":
-
         # Use the gradient tape to automatically retrieve
         # the gradients of the trainable variables with respect to the loss.
         grads = tape.gradient(loss_value, autoencoder_model.trainable_weights)
@@ -98,6 +100,7 @@ def compute_train_metrics(x,y, mode="Train"):
         opt.apply_gradients(zip(grads, autoencoder_model.trainable_weights))
 
     return loss_value, logits
+
 
 # ----------------------------------------------Run Main Code--------------------------------------------------------- #
 
@@ -113,11 +116,12 @@ if __name__ == '__main__':
                                         voxel_path=VOXEL_PATH,
                                         mode='train')
 
-    train_path_list_sample = train_path_list[:100] + train_path_list[-100:]  # just for testing purposes
+    # train_path_list_sample = train_path_list[:5000] + train_path_list[-5000:]  # just for testing purposes
+    train_path_list_sample = train_path_list[:1000]
 
     train_dataset = tf.data.Dataset.from_generator(data.tf_data_generator,
                                                    args=[train_path_list_sample],
-                                                   output_types = (tf.float32, tf.float32, tf.string))
+                                                   output_types=(tf.float32, tf.float32, tf.string))
 
     train_dataset = train_dataset.batch(batch_size).shuffle(150).prefetch(tf.data.AUTOTUNE)
 
@@ -131,7 +135,7 @@ if __name__ == '__main__':
 
     val_dataset = tf.data.Dataset.from_generator(data.tf_data_generator,
                                                  args=[val_path_list_sample],
-                                                 output_types = (tf.float32, tf.float32, tf.string))
+                                                 output_types=(tf.float32, tf.float32, tf.string))
 
     val_dataset = val_dataset.batch(batch_size).shuffle(150).prefetch(tf.data.AUTOTUNE)
 
@@ -203,7 +207,7 @@ if __name__ == '__main__':
         # Iterate over the batches of the dataset.
         for step, (x_batch_train, y_batch_train, tax_id) in enumerate(train_dataset):
             tax_id = tax_id.numpy()
-            tax_id = [item.decode("utf-8") for item in tax_id] # byte string (b'hello' to regular string 'hello')
+            tax_id = [item.decode("utf-8") for item in tax_id]  # byte string (b'hello' to regular string 'hello')
 
             train_loss, logits = compute_train_metrics(x_batch_train, y_batch_train, "train")
 
@@ -212,12 +216,12 @@ if __name__ == '__main__':
             iou_dict = metr.iou_dict_update(tax_id, iou_dict, iou)
             mean_iou_train = metr.calc_mean_iou(iou_dict, mean_iou_train)
 
-            values=[('train_loss', train_loss)]
+            values = [('train_loss', train_loss)]
 
             progBar.add(batch_size, values)
 
         allClass_mean_iou = sum(mean_iou_train.values()) / len(mean_iou_train)
-      
+
         logger.info("Training IoU -> {0}".format(mean_iou_train))
         logger.info("Overall mean Training IoU -> {0}".format(allClass_mean_iou))
 
@@ -227,10 +231,10 @@ if __name__ == '__main__':
             tf.summary.scalar('train_iou_plane', allClass_mean_iou, step=epoch)
 
         # Iterate over the batches of the dataset and calculate validation loss
-        logger.info("Validation phase running now for Epoch - {0}".format(epoch+1))
+        logger.info("Validation phase running now for Epoch - {0}".format(epoch + 1))
         for step, (x_batch_val, y_batch_val, tax_id) in tqdm(enumerate(val_dataset), total=num_validation_steps):
             tax_id = tax_id.numpy()
-            tax_id = [item.decode("utf-8") for item in tax_id] # byte string (b'hello' to regular string 'hello')
+            tax_id = [item.decode("utf-8") for item in tax_id]  # byte string (b'hello' to regular string 'hello')
 
             val_loss, logits = compute_train_metrics(x_batch_val, y_batch_val, "val")
 
@@ -245,15 +249,21 @@ if __name__ == '__main__':
         with val_summary_writer.as_default():
             tf.summary.scalar('val_loss', val_loss, step=epoch)
             tf.summary.scalar('overall_val_iou', allClass_mean_iou, step=epoch)
-        
+
         logger.info("Validation IoU -> {0}".format(mean_iou_val))
         logger.info("Overall mean Training IoU -> {0}".format(allClass_mean_iou))
 
+        # Appends values into dataframe for each epoch
+        saveiou.record_iou_train(epoch + 1, mean_iou_val)
+
         # Save Model During Training
-        if (epoch+1) % model_save_frequency == 0:
-            model_save_file = 'ae_model_epoch_{0}.h5'.format(epoch+1)
+        if (epoch + 1) % model_save_frequency == 0:
+            model_save_file = 'ae_model_epoch_{0}.h5'.format(epoch + 1)
             model_save_file_path = os.path.join(checkpoint_path, model_save_file)
             logger.info("Saving Autoencoder Model at {0}".format(model_save_file_path))
-            tf.keras.models.save_model(model=autoencoder_model, filepath=model_save_file_path, overwrite=True, include_optimizer=True)
+            tf.keras.models.save_model(model=autoencoder_model, filepath=model_save_file_path, overwrite=True,
+                                       include_optimizer=True)
 
+    # Saves dataframe into a CSV file
+    saveiou.saveioufile()
     logger.info("End of program execution")
