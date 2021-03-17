@@ -22,8 +22,8 @@ VOXEL_PATH            = 'E:\\Datasets\\3D_Reconstruction\ShapeNetVox32\\{}\\{}\\
 # ----------------------------------------------Training Configuration------------------------------------------------ #
 
 input_shape = (224, 224, 3)  # input shape
-batch_size = 4  # batch size
-epochs = 2 # Number of epochs
+batch_size = 16  # batch size
+epochs = 5 # Number of epochs
 learning_rate = 0.001 # Learning rate
 boundaries = [150] # Boundary epoch for learning rate scheduler
 model_save_frequency = 1 # Save model every n epochs (specify n)
