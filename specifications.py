@@ -15,3 +15,6 @@
 
 # CUDNN Installation Guide -
 # https://docs.nvidia.com/deeplearning/cudnn/install-guide/index.html#installwindows
+
+# Complete Tensorflow, CUDA & CUDNN Installation Linux Commands -
+# https://gist.github.com/Mahedi-61/2a2f1579d4271717d421065168ce6a73
