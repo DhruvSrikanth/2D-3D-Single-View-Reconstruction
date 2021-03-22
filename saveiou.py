@@ -61,5 +61,3 @@ def saveioufile():
 
     df_train.to_csv(os.path.join(os.getcwd(), 'IOU-per-Epoch-per-Class.csv'), index=False)
 
-    df_train.to_csv('IOUperEpochClass.csv', index=False)
-
