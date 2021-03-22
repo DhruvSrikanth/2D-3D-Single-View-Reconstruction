@@ -1,8 +1,5 @@
 import pandas as pd
-<<<<<<< HEAD
 import os
-=======
->>>>>>> dhruv
 
 df_train = pd.DataFrame(
     columns=['Epoch_no', 'aeroplane', 'bench', 'cabinet', 'car', 'chair', 'display', 'lamp', 'speaker', 'rifle', 'sofa',
@@ -61,8 +58,8 @@ def record_iou_train(epoch, iou):
 
 
 def saveioufile():
-<<<<<<< HEAD
+
     df_train.to_csv(os.path.join(os.getcwd(), 'IOU-per-Epoch-per-Class.csv'), index=False)
-=======
+
     df_train.to_csv('IOUperEpochClass.csv', index=False)
->>>>>>> dhruv
+

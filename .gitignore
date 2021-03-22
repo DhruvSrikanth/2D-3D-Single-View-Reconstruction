@@ -1,11 +1,7 @@
 __pycache__/
 logs/
-<<<<<<< HEAD
 saved_models/
 venv_3DR/
 *.log
 *.zip
 *.csv
-=======
-saved_models/
->>>>>>> dhruv
