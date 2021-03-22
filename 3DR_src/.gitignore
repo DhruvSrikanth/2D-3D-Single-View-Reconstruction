@@ -1,6 +1,7 @@
 __pycache__/
 logs/
 saved_models/
+venv_3DR/
 *.log
 *.zip
 *.csv
