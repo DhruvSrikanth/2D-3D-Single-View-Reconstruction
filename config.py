@@ -4,10 +4,15 @@ import os
 
 # ----------------------------------------------Set File Paths-------------------------------------------------------- #
 
+# Colab
+TAXONOMY_FILE_PATH    = '/content/drive/My Drive/3DR/src/ShapeNet_mid_2_other.json'
+RENDERING_PATH        = '/content/drive/My Drive/3DR/Datasets/ShapeNetRendering/{}/{}/rendering'
+VOXEL_PATH            = '/content/drive/My Drive/3DR/Datasets/ShapeNetVox32/{}/{}/model.binvox'
+
 # Dhruv
-TAXONOMY_FILE_PATH    = 'E:\\Projects\\3D_Reconstruction\\3DR_src\\ShapeNet_mid_2_other.json' # 'E:\\Projects\\3D_Reconstruction\\3DR_src\\ShapeNet_original.json' # 'E:\\Projects\\3D_Reconstruction\\3DR_src\\ShapeNet.json'
-RENDERING_PATH        = 'E:\\Datasets\\3D_Reconstruction\ShapeNetRendering\\{}\\{}\\rendering'
-VOXEL_PATH            = 'E:\\Datasets\\3D_Reconstruction\ShapeNetVox32\\{}\\{}\\model.binvox'
+# TAXONOMY_FILE_PATH    = 'E:\\Projects\\3D_Reconstruction\\3DR_src\\ShapeNet_mid_2_other.json' # 'E:\\Projects\\3D_Reconstruction\\3DR_src\\ShapeNet_original.json' # 'E:\\Projects\\3D_Reconstruction\\3DR_src\\ShapeNet.json'
+# RENDERING_PATH        = 'E:\\Datasets\\3D_Reconstruction\ShapeNetRendering\\{}\\{}\\rendering'
+# VOXEL_PATH            = 'E:\\Datasets\\3D_Reconstruction\ShapeNetVox32\\{}\\{}\\model.binvox'
 
 # Suraj
 # TAXONOMY_FILE_PATH    = 'C:\\Users\\bidnu\\Documents\\Suraj_Docs\\3D_Project\\ShapeNet_P2V\\ShapeNet.json'
