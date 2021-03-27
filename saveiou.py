@@ -59,5 +59,5 @@ def record_iou_train(epoch, iou):
 
 def saveioufile():
 
-    df_train.to_csv(os.path.join(os.getcwd(), 'IOU-per-Epoch-per-Class.csv'), index=False)
+    df_train.to_csv(os.path.join(os.getcwd(), 'logs', 'IOU-per-Epoch-per-Class.csv'), index=False)
 

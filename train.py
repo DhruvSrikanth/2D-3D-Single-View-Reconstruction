@@ -117,7 +117,7 @@ if __name__ == '__main__':
                                         mode='train')
 
     # train_path_list_sample = train_path_list[:5000] + train_path_list[-5000:]  # just for testing purposes
-    train_path_list_sample = train_path_list # [:1000]
+    train_path_list_sample = train_path_list #[:1000]
 
     train_dataset = tf.data.Dataset.from_generator(data.tf_data_generator,
                                                    args=[train_path_list_sample],
@@ -132,6 +132,8 @@ if __name__ == '__main__':
                                       mode='val')
 
     val_path_list_sample = val_path_list #val_path_list[:20] + val_path_list[-20:]  # just for testing purposes
+
+    val_path_list_sample = val_path_list_sample #[:100]
 
     val_dataset = tf.data.Dataset.from_generator(data.tf_data_generator,
                                                  args=[val_path_list_sample],
@@ -263,8 +265,7 @@ if __name__ == '__main__':
             logger.info("Saving Autoencoder Model at {0}".format(model_save_file_path))
             tf.keras.models.save_model(model=autoencoder_model, filepath=model_save_file_path, overwrite=True,
                                        include_optimizer=True)
+        # Saves dataframe into a CSV file
+        saveiou.saveioufile()
 
-	    # Saves dataframe into a CSV file
-	    saveiou.saveioufile()
-	    
     logger.info("End of program execution")
