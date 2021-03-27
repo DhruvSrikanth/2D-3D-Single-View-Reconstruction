@@ -40,7 +40,6 @@ sudo apt-get update
  # installing CUDA-10.1
 sudo apt-get -o Dpkg::Options::="--force-overwrite" install cuda-11-0 cuda-drivers
 
-
 # setup your paths
 echo 'export PATH=/usr/local/cuda-11.0/bin:$PATH' >> ~/.bashrc
 echo 'export LD_LIBRARY_PATH=/usr/local/cuda-11.0/lib64:$LD_LIBRARY_PATH' >> ~/.bashrc
@@ -68,4 +67,4 @@ nvcc -V
 # install Tensorflow (an open source machine learning framework)
 # I choose version 2.1.0 because it is stable and compatible with CUDA 10.1 Toolkit and cuDNN 7.6
 
-sudo pip3 install --user tensorflow-gpu==2.4.0
+# sudo pip3 install --user tensorflow-gpu==2.4.0

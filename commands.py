@@ -3,6 +3,20 @@
 # -------------------------------------------------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------------------------------------------------- #
 
+# Python version should be 3.6-3.8
+# Install virtual environment -
+# Create inside Project folder
+# sudo apt install python3-venv
+# python3 -m venv 3dr_venv
+
+# Activate virtual environment -
+# Command must be used in Project folder
+# source 3dr_venv/bin/activate
+# sudo pip install --user tensorflow-gpu==2.4.0 (run after activating venv)
+
+# -------------------------------------------------------------------------------------------------------------------- #
+# -------------------------------------------------------------------------------------------------------------------- #
+
 # Unpack Datasets .tgz files with -
 # tar xzvf your-file-name.tgz
 # tar -xzf your-file-name.tgz

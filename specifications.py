@@ -3,6 +3,8 @@
 # -------------------------------------------------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------------------------------------------------- #
 
+# Python - (3.6-3.8)
+
 # Tensorflow - (2.4.0)
 # pip install tensorflow==2.4.0
 
@@ -18,3 +20,11 @@
 
 # Complete Tensorflow, CUDA & CUDNN Installation Linux Commands -
 # https://gist.github.com/Mahedi-61/2a2f1579d4271717d421065168ce6a73
+
+
+# Directory Structure -
+# -> 3DR (Project folder)
+#   ->src (git pull master into this folder - see that only the files are pulled and not the folder containing the files)
+#   ->Datasets (copy tar and extract inside this)
+#   ->3dr_venv (this should be created in this directory using the command for a virtual environment in commands.py
+
