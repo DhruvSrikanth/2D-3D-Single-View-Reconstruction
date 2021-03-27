@@ -28,8 +28,8 @@ import os
 
 input_shape = (224, 224, 3)  # input shape
 batch_size = 16  # batch size
-epochs = 5 # Number of epochs
+epochs = 5 #250 # Number of epochs
 learning_rate = 0.001 # Learning rate
 boundaries = [150] # Boundary epoch for learning rate scheduler
-model_save_frequency = 1 # Save model every n epochs (specify n)
+model_save_frequency = 1 #10 # Save model every n epochs (specify n)
 checkpoint_path = os.path.join(os.getcwd(), 'saved_models') # Model save path
