@@ -197,7 +197,7 @@ if __name__ == '__main__':
     num_training_samples = len(train_path_list_sample)
     num_validation_steps = len(val_path_list_sample) // batch_size
 
-    end_epoch = epochs
+    end_epoch = resume_epoch + epochs
     for epoch in range(resume_epoch, end_epoch, 1):
         print("\nepoch {}/{}".format(epoch + 1, end_epoch))
 
