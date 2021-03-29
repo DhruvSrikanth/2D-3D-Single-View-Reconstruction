@@ -69,6 +69,7 @@ logger = logger_train
 # ----------------------------------------------Train Function-------------------------------------------------------- #
 
 # Compute Loss
+@tf.function(experimental_compile=True)
 def compute_train_metrics(x, y, mode="Train"):
     '''
     Compute training metrics for custom training loop.\n
