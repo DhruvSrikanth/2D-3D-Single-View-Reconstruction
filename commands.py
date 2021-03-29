@@ -64,7 +64,8 @@
 # -------------------------------------------------------------------------------------------------------------------- #
 
 # Tensorboard
-# tensorboard --logdir=logs/gradient_tape
+# tensorboard --logdir=logs/gradient_tape --host 0.0.0.0 (VM)
+# ssh drs@20.193.228.25 -N -f -L localhost:16006:localhost:6006 (local)
 
 # ---------------------------CUDA Installation commands ubuntu 18.04 lts------------------------------------------#
 # wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/cuda-ubuntu1804.pin
