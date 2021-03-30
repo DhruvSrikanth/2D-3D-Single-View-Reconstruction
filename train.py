@@ -231,7 +231,7 @@ if __name__ == '__main__':
         # TODO: Training and Validation Loss -> 1 graph, Training and Validation IOU (mean IOU over all classes)
         with train_summary_writer.as_default():
             tf.summary.scalar('train_loss', train_loss, step=epoch)
-            tf.summary.scalar('train_iou_plane', allClass_mean_iou, step=epoch)
+            tf.summary.scalar('overall_train_iou', allClass_mean_iou, step=epoch)
 
         # Iterate over the batches of the dataset and calculate validation loss
         logger.info("Validation phase running now for Epoch - {0}".format(epoch + 1))
@@ -254,7 +254,7 @@ if __name__ == '__main__':
             tf.summary.scalar('overall_val_iou', allClass_mean_iou, step=epoch)
 
         logger.info("Validation IoU -> {0}".format(mean_iou_val))
-        logger.info("Overall mean Training IoU -> {0}".format(allClass_mean_iou))
+        logger.info("Overall mean Validation IoU -> {0}".format(allClass_mean_iou))
 
         # Appends values into dataframe for each epoch
         saveiou.record_iou_train(epoch + 1, mean_iou_val)
