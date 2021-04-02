@@ -14,7 +14,7 @@ import config as cfg
 from logger import logger_test
 import data
 import metrics as metr
-import saveiou
+import save_data
 
 # ----------------------------------------------Set Environment Variables--------------------------------------------- #
 
@@ -165,9 +165,9 @@ if __name__ == '__main__':
     logger.info("Overall mean Testing IoU -> {0}". format(allClass_mean_iou))
 
     # Save testing IoU values in CSV file
-    saveiou.record_iou_data_test(step+1,mean_iou_test)
+    save_data.record_iou_data(3, step+1,mean_iou_test)
 
     # Save Loss value in CSV file
-    saveiou.record_testing_loss(step+1,test_loss.numpy())
+    save_data.record_loss(2, step+1,test_loss.numpy())
 
     logger.info("End of program execution")
