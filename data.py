@@ -83,3 +83,34 @@ def tf_data_generator(file_list):
           volume = volume.data.astype(np.float32)
 
         yield rendering_image, volume, tax_id
+
+def data_gen(file_list, batch_size=1):
+  '''
+  Create generator from file path list.\n
+  :param file_list: List of file paths\n
+  :param batch_size: batch_size\n
+  :return: Generator object
+  '''
+  l = len(file_list)
+  random.shuffle(file_list)
+  for idx in range(0,l,batch_size):
+      img, vox, tax_id = [],[],[]
+      sample = file_list[idx:min(idx+batch_size,l)]
+      for imgs,voxel,t_id in sample:
+          rgba_in = Image.open(imgs)
+          background = Image.new("RGB", rgba_in.size, (255, 255, 255))
+          background.paste(rgba_in, mask=rgba_in.split()[3]) # 3 is the alpha channel
+          rendering_image = cv2.resize(np.array(background).astype(np.float32), (224,224)) / 255.
+
+          with open(voxel, 'rb') as f:
+              volume = binvox_rw.read_as_3d_array(f)
+              volume = volume.data.astype(np.float32)
+
+          img.append(rendering_image)
+          vox.append(volume)
+          tax_id.append(t_id)
+
+      img = np.asarray(img).reshape(-1,224,224,3)
+      vox = np.asarray(vox).reshape(-1,32,32,32)
+
+      yield img, vox, tax_id

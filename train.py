@@ -71,7 +71,8 @@ logger = logger_train
 # ----------------------------------------------Train Function-------------------------------------------------------- #
 
 # Compute Loss
-@tf.function(experimental_compile=True)
+# @tf.function(experimental_compile=True)
+@tf.function
 def compute_train_metrics(x, y, mode="Train"):
     '''
     Compute training metrics for custom training loop.\n
@@ -122,11 +123,11 @@ if __name__ == '__main__':
     # train_path_list_sample = train_path_list[:5000] + train_path_list[-5000:]  # just for testing purposes
     train_path_list_sample = train_path_list[:10]
 
-    train_dataset = tf.data.Dataset.from_generator(data.tf_data_generator,
-                                                   args=[train_path_list_sample],
-                                                   output_types=(tf.float32, tf.float32, tf.string))
+    # train_dataset = tf.data.Dataset.from_generator(data.tf_data_generator,
+    #                                                args=[train_path_list_sample],
+    #                                                output_types=(tf.float32, tf.float32, tf.string))
 
-    train_dataset = train_dataset.batch(batch_size).shuffle(150).prefetch(tf.data.AUTOTUNE)
+    # train_dataset = train_dataset.batch(batch_size).shuffle(150).prefetch(tf.data.AUTOTUNE)
 
     # Get validation path lists and validation data generator
     val_path_list = data.get_xy_paths(taxonomy_dict=taxonomy_dict,
@@ -138,11 +139,11 @@ if __name__ == '__main__':
 
     val_path_list_sample = val_path_list_sample[:10]
 
-    val_dataset = tf.data.Dataset.from_generator(data.tf_data_generator,
-                                                 args=[val_path_list_sample],
-                                                 output_types=(tf.float32, tf.float32, tf.string))
+    # val_dataset = tf.data.Dataset.from_generator(data.tf_data_generator,
+    #                                              args=[val_path_list_sample],
+    #                                              output_types=(tf.float32, tf.float32, tf.string))
 
-    val_dataset = val_dataset.batch(batch_size).shuffle(150).prefetch(tf.data.AUTOTUNE)
+    # val_dataset = val_dataset.batch(batch_size).shuffle(150).prefetch(tf.data.AUTOTUNE)
 
     # Load Model and Resume Training, otherwise Start Training
 
@@ -211,9 +212,10 @@ if __name__ == '__main__':
         iou_dict = dict()
 
         # Iterate over the batches of the dataset.
-        for step, (x_batch_train, y_batch_train, tax_id) in enumerate(train_dataset):
-            tax_id = tax_id.numpy()
-            tax_id = [item.decode("utf-8") for item in tax_id]  # byte string (b'hello' to regular string 'hello')
+        # for step, (x_batch_train, y_batch_train, tax_id) in enumerate(train_dataset):
+        for step, (x_batch_train, y_batch_train, tax_id) in enumerate(data.data_gen(train_path_list_sample, batch_size)):
+            # tax_id = tax_id.numpy()
+            # tax_id = [item.decode("utf-8") for item in tax_id]  # byte string (b'hello' to regular string 'hello')
 
             train_loss, logits = compute_train_metrics(x_batch_train, y_batch_train, "train")
 
@@ -244,9 +246,10 @@ if __name__ == '__main__':
 
         # Iterate over the batches of the dataset and calculate validation loss
         logger.info("Validation phase running now for Epoch - {0}".format(epoch + 1))
-        for step, (x_batch_val, y_batch_val, tax_id) in tqdm(enumerate(val_dataset), total=num_validation_steps):
-            tax_id = tax_id.numpy()
-            tax_id = [item.decode("utf-8") for item in tax_id]  # byte string (b'hello' to regular string 'hello')
+        # for step, (x_batch_val, y_batch_val, tax_id) in tqdm(enumerate(val_dataset), total=num_validation_steps):
+        for step, (x_batch_val, y_batch_val, tax_id) in tqdm(enumerate(data.data_gen(val_path_list_sample, batch_size)), total=num_validation_steps):
+            # tax_id = tax_id.numpy()
+            # tax_id = [item.decode("utf-8") for item in tax_id]  # byte string (b'hello' to regular string 'hello')
 
             val_loss, logits = compute_train_metrics(x_batch_val, y_batch_val, "val")
 
