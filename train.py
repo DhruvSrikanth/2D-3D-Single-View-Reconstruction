@@ -14,6 +14,7 @@ from logger import logger_train
 import data
 import model
 import metrics as metr
+import utils
 import saveiou
 
 # ----------------------------------------------Set Environment Variables--------------------------------------------- #
@@ -118,7 +119,7 @@ if __name__ == '__main__':
                                         mode='train')
 
     # train_path_list_sample = train_path_list[:5000] + train_path_list[-5000:]  # just for testing purposes
-    train_path_list_sample = train_path_list[:100]
+    train_path_list_sample = train_path_list[:10]
 
     train_dataset = tf.data.Dataset.from_generator(data.tf_data_generator,
                                                    args=[train_path_list_sample],
@@ -134,7 +135,7 @@ if __name__ == '__main__':
 
     val_path_list_sample = val_path_list #val_path_list[:20] + val_path_list[-20:]  # just for testing purposes
 
-    val_path_list_sample = val_path_list_sample[:100]
+    val_path_list_sample = val_path_list_sample[:10]
 
     val_dataset = tf.data.Dataset.from_generator(data.tf_data_generator,
                                                  args=[val_path_list_sample],
@@ -154,6 +155,7 @@ if __name__ == '__main__':
         logger.info("Found model save directory at -> {0}".format(checkpoint_path))
 
     saved_model_files = glob.glob(checkpoint_path + "\*.h5")
+    saved_model_files = utils.model_sort(saved_model_files)
     if len(saved_model_files) == 0:
         resume_epoch = 0
         autoencoder_model = model.build_autoencoder(input_shape, describe=False)

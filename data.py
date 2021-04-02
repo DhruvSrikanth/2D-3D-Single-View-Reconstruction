@@ -3,6 +3,7 @@
 import os
 import json
 import numpy as np
+import random
 
 import cv2
 from PIL import Image
@@ -54,6 +55,9 @@ def get_xy_paths(taxonomy_dict, rendering_path, voxel_path, mode = 'train'):
                                                 value.strip('\n'))
                         target_path = voxel_path.format(taxonomy_dict[i]["taxonomy_id"], sample)
                         path_list.append([img_path, target_path, taxonomy_dict[i]["taxonomy_id"]])
+
+    # Shuffle path list
+    random.shuffle(path_list) # in-place
 
     logger.info("Finished reading all the files")
     return path_list
