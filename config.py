@@ -24,12 +24,17 @@ VOXEL_PATH            = 'E:\\Datasets\\3D_Reconstruction\ShapeNetVox32\\{}\\{}\\
 # RENDERING_PATH        = 'D:\\ShapeNet_new\\ShapeNetRendering\\{}\\{}\\rendering'
 # VOXEL_PATH            = 'D:\\ShapeNet_new\\ShapeNetVox32\\{}\\{}\\model.binvox'
 
+# VM
+TAXONOMY_FILE_PATH      = '/home/drs/3D_Project/src/ShapeNet_original.json'
+RENDERING_PATH          = '/home/drs/3D_Project/datasets/ShapeNet/ShapeNetRendering/{}/{}/rendering'
+VOXEL_PATH              = '/home/drs/3D_Project/datasets/ShapeNet/ShapeNetVox32/{}/{}/model.binvox'
+
 # ----------------------------------------------Training Configuration------------------------------------------------ #
 
 input_shape = (224, 224, 3)  # input shape
-batch_size = 4  # batch size
-epochs = 15 #250 # Number of epochs
+batch_size = 32  # batch size
+epochs = 100 #250 # Number of epochs
 learning_rate = 0.001 # Learning rate
 boundaries = [150] # Boundary epoch for learning rate scheduler
-model_save_frequency = 1 #10 # Save model every n epochs (specify n)
+model_save_frequency = 5 #10 # Save model every n epochs (specify n)
 checkpoint_path = os.path.join(os.getcwd(), 'saved_models') # Model save path
