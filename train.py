@@ -4,6 +4,7 @@ import os
 import glob
 import datetime
 import argparse
+import numpy
 
 import tensorflow as tf
 
@@ -230,10 +231,16 @@ if __name__ == '__main__':
         logger.info("Training IoU -> {0}".format(mean_iou_train))
         logger.info("Overall mean Training IoU -> {0}".format(allClass_mean_iou))
 
+        # Save training IoU values in CSV file
+        saveiou.record_iou_data_train(epoch + 1, mean_iou_train)
+
         # TODO: Training and Validation Loss -> 1 graph, Training and Validation IOU (mean IOU over all classes)
         with train_summary_writer.as_default():
             tf.summary.scalar('train_loss', train_loss, step=epoch)
             tf.summary.scalar('overall_train_iou', allClass_mean_iou, step=epoch)
+
+        # Save Loss value in CSV file
+        saveiou.record_training_loss(epoch+1,train_loss.numpy())
 
         # Iterate over the batches of the dataset and calculate validation loss
         logger.info("Validation phase running now for Epoch - {0}".format(epoch + 1))
@@ -258,8 +265,8 @@ if __name__ == '__main__':
         logger.info("Validation IoU -> {0}".format(mean_iou_val))
         logger.info("Overall mean Validation IoU -> {0}".format(allClass_mean_iou))
 
-        # Appends values into dataframe for each epoch
-        saveiou.record_iou_train(epoch + 1, mean_iou_val)
+        # Save validation IoU values in CSV file
+        saveiou.record_iou_data_val(epoch + 1, mean_iou_val)
 
         # Save Model During Training
         if (epoch + 1) % model_save_frequency == 0:
@@ -268,7 +275,5 @@ if __name__ == '__main__':
             logger.info("Saving Autoencoder Model at {0}".format(model_save_file_path))
             tf.keras.models.save_model(model=autoencoder_model, filepath=model_save_file_path, overwrite=True,
                                        include_optimizer=True)
-        # Saves dataframe into a CSV file
-        saveiou.saveioufile()
 
     logger.info("End of program execution")
