@@ -67,6 +67,9 @@ checkpoint_path = args.checkpoint_path
 
 logger = logger_train
 
+# -------------------------------------------Print Model Params------------------------------------------------------- #
+
+logger.info("image input shape -> {0}\n bacth_size -> {1}\n epochs -> {2}\n learning_rate -> {3}".format(input_shape, batch_size, epochs, learning_rate))
 
 # ----------------------------------------------Train Function-------------------------------------------------------- #
 
