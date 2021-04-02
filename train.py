@@ -159,7 +159,7 @@ if __name__ == '__main__':
         # print("\nFound model save directory at - ", checkpoint_path)
         logger.info("Found model save directory at -> {0}".format(checkpoint_path))
 
-    saved_model_files = glob.glob(checkpoint_path + "\*.h5")
+    saved_model_files = glob.glob(checkpoint_path + "/*.h5")
     saved_model_files = utils.model_sort(saved_model_files)
     if len(saved_model_files) == 0:
         resume_epoch = 0

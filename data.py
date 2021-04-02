@@ -91,11 +91,16 @@ def data_gen(file_list, batch_size=1):
   :param batch_size: batch_size\n
   :return: Generator object
   '''
+  # Shuffle path list
+  random.shuffle(file_list) # in-place
+
   l = len(file_list)
   random.shuffle(file_list)
+
   for idx in range(0,l,batch_size):
       img, vox, tax_id = [],[],[]
-      sample = file_list[idx:min(idx+batch_size,l)]
+      sample = file_list[idx:min(idx + batch_size, l)]
+      
       for imgs,voxel,t_id in sample:
           rgba_in = Image.open(imgs)
           background = Image.new("RGB", rgba_in.size, (255, 255, 255))
