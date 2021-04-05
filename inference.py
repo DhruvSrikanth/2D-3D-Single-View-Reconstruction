@@ -4,7 +4,7 @@ import os
 import glob
 import datetime
 import argparse
-import numpy
+import numpy as np
 import cv2
 
 import tensorflow as tf
@@ -134,10 +134,13 @@ if __name__ == '__main__':
         # print(test_loss, iou)
 
     logger.info("Inference loss -> {0}".format(test_loss))
-    logger.info("Inference IoU -> {0}".format(iou))
+    logger.info("Inference IoU -> {0}".format(iou[0]))
 
     # Save Voxel Model
-    returned_image = binvox_viz.get_volume_views(logits, VOXEL_SAVE_PATH)
+    gv_ = logits.numpy()
+    gv = np.squeeze(gv_)
+    print(gv.shape)
+    returned_image = binvox_viz.get_volume_views(gv, VOXEL_SAVE_PATH)
     cv2.imshow('voxel snapshot', returned_image)
 
     logger.info("End of program execution")

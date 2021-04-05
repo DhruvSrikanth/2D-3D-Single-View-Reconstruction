@@ -16,7 +16,7 @@ def get_volume_views(volume, save_dir):
     volume = volume.squeeze().__ge__(0.5)
     fig = plt.figure()
     ax = fig.gca(projection=Axes3D.name)
-    ax.set_aspect('equal')
+    ax.set_aspect('auto')
     ax.voxels(volume, edgecolor="k")
 
     save_path = os.path.join(save_dir + '\\voxel_snapshot.png')
