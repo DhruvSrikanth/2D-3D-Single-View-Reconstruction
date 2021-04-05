@@ -73,7 +73,7 @@ def compute_train_metrics(x, y):
         # to its inputs are going to be recorded
         # on the GradientTape.
 
-        logits = autoencoder_model(x, training=True)  # Logits for this minibatch
+        logits = autoencoder_model(x, training=False)  # Logits for this minibatch
 
         # Compute the loss value for this minibatch.
         loss_value = loss_fn(y, logits)
