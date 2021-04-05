@@ -10,9 +10,14 @@ import os
 # VOXEL_PATH            = '/content/drive/My Drive/3DR/Datasets/ShapeNetVox32/{}/{}/model.binvox'
 
 # Dhruv
-TAXONOMY_FILE_PATH    = 'E:\\Projects\\3D_Reconstruction\\src\\ShapeNet_mid_2_other.json' # 'E:\\Projects\\3D_Reconstruction\\3DR_src\\ShapeNet_original.json' # 'E:\\Projects\\3D_Reconstruction\\3DR_src\\ShapeNet.json'
-RENDERING_PATH        = 'E:\\Datasets\\3D_Reconstruction\ShapeNetRendering\\{}\\{}\\rendering'
-VOXEL_PATH            = 'E:\\Datasets\\3D_Reconstruction\ShapeNetVox32\\{}\\{}\\model.binvox'
+# TAXONOMY_FILE_PATH    = 'E:\\Projects\\3D_Reconstruction\\src\\ShapeNet_mid_2_other.json' # 'E:\\Projects\\3D_Reconstruction\\3DR_src\\ShapeNet_original.json' # 'E:\\Projects\\3D_Reconstruction\\3DR_src\\ShapeNet.json'
+# RENDERING_PATH        = 'E:\\Datasets\\3D_Reconstruction\ShapeNetRendering\\{}\\{}\\rendering'
+# VOXEL_PATH            = 'E:\\Datasets\\3D_Reconstruction\ShapeNetVox32\\{}\\{}\\model.binvox'
+
+RENDERING_PATH = os.path.join('E:\\Datasets\\3D_Reconstruction\Inference\Rendered Image', os.listdir('E:\\Datasets\\3D_Reconstruction\Inference\Rendered Image')[0])
+GROUND_TRUTH_PATH = os.path.join('E:\\Datasets\\3D_Reconstruction\Inference\Ground Truth', os.listdir('E:\\Datasets\\3D_Reconstruction\Inference\Ground Truth')[0])
+VOXEL_SAVE_PATH = os.path.join('E:\\Datasets\\3D_Reconstruction\Inference')
+
 
 # Suraj
 # TAXONOMY_FILE_PATH    = 'C:\\Users\\bidnu\\Documents\\Suraj_Docs\\3D_Project\\ShapeNet_P2V\\ShapeNet.json'
@@ -25,9 +30,10 @@ VOXEL_PATH            = 'E:\\Datasets\\3D_Reconstruction\ShapeNetVox32\\{}\\{}\\
 # VOXEL_PATH            = 'D:\\ShapeNet_new\\ShapeNetVox32\\{}\\{}\\model.binvox'
 
 # VM
-TAXONOMY_FILE_PATH      = '/home/drs/3D_Project/src/ShapeNet_original.json'
-RENDERING_PATH          = '/home/drs/3D_Project/datasets/ShapeNet/ShapeNetRendering/{}/{}/rendering'
-VOXEL_PATH              = '/home/drs/3D_Project/datasets/ShapeNet/ShapeNetVox32/{}/{}/model.binvox'
+# TAXONOMY_FILE_PATH      = '/home/drs/3D_Project/src/ShapeNet_original.json'
+# RENDERING_PATH          = '/home/drs/3D_Project/datasets/ShapeNet/ShapeNetRendering/{}/{}/rendering'
+# VOXEL_PATH              = '/home/drs/3D_Project/datasets/ShapeNet/ShapeNetVox32/{}/{}/model.binvox'
+
 
 # ----------------------------------------------Training Configuration------------------------------------------------ #
 

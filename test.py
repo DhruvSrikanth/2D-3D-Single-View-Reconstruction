@@ -15,6 +15,7 @@ from logger import logger_test
 import data
 import metrics as metr
 import save_data
+import utils
 
 # ----------------------------------------------Set Environment Variables--------------------------------------------- #
 
@@ -58,6 +59,7 @@ logger = logger_test
 # ----------------------------------------------Test Function-------------------------------------------------------- #
 
 # Compute loss
+@tf.function
 def compute_train_metrics(x,y):
     '''
     Compute training metrics for custom training loop.\n
@@ -111,6 +113,7 @@ if __name__ == '__main__':
         exit()
     else:
         saved_model_files = glob.glob(checkpoint_path + "\*.h5")
+        saved_model_files = utils.model_sort(saved_model_files)
         if len(saved_model_files) == 0:
             logger.error("No saved model found. Please run train.py to train a model and save it for Testing purposes")
             exit()
