@@ -5,6 +5,7 @@ import glob
 import datetime
 import argparse
 import numpy
+import cv2
 
 import tensorflow as tf
 
@@ -16,6 +17,7 @@ import data
 import metrics as metr
 import save_data
 import utils
+import binvox_viz
 
 # ----------------------------------------------Set Environment Variables--------------------------------------------- #
 
@@ -129,10 +131,13 @@ if __name__ == '__main__':
 
         test_loss, logits = compute_train_metrics(x_test, y_test)
         iou = metr.calc_iou_loss(y_test, logits)
-
         # print(test_loss, iou)
 
     logger.info("Inference loss -> {0}".format(test_loss))
     logger.info("Inference IoU -> {0}".format(iou))
+
+    # Save Voxel Model
+    returned_image = binvox_viz.get_volume_views(logits, VOXEL_SAVE_PATH)
+    cv2.imshow('voxel snapshot', returned_image)
 
     logger.info("End of program execution")
