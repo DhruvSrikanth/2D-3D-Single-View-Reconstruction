@@ -17,7 +17,8 @@ import data
 import metrics as metr
 import save_data
 import utils
-import binvox_viz
+import binvox_rw as bin_rw
+import binvox_viz as bin_viz
 
 # ----------------------------------------------Set Environment Variables--------------------------------------------- #
 
@@ -89,7 +90,7 @@ if __name__ == '__main__':
 
     # Read Data
     inference_paths = [RENDERING_PATH, GROUND_TRUTH_PATH]
-    test_dataset = data.tf_data_generator(inference_paths, 'Inference')
+    test_dataset = data.tf_data_generator2(inference_paths, 'Inference')
 
 
 
@@ -111,7 +112,7 @@ if __name__ == '__main__':
     saved_model_files = glob.glob(checkpoint_path + "\*.h5")
     latest_model = os.path.join(checkpoint_path, saved_model_files[-1])
     autoencoder_model = tf.keras.models.load_model(latest_model, compile=False)
-    print(autoencoder_model.summary())
+    # print(autoencoder_model.summary())
 
     logger.info("Loading Model from -> {0}".format(latest_model))
 
@@ -120,27 +121,24 @@ if __name__ == '__main__':
 
     # logger.info("Testing phase running now")
     for x_test, y_test in test_dataset:
-        x_test = tf.reshape(
-            tensor = x_test, shape = (-1, 224, 224, 3)
-        )
-        y_test = tf.reshape(
-            tensor=y_test, shape=(-1, 32, 32, 32)
-        )
-        logger.info("render path -> ", x_test.shape)
-        logger.info("gt path -> ", y_test.shape)
+        x_test = tf.reshape(tensor = x_test, shape = (-1, 224, 224, 3))
+        y_test = tf.reshape(tensor=y_test, shape=(-1, 32, 32, 32))
 
         test_loss, logits = compute_train_metrics(x_test, y_test)
-        iou = metr.calc_iou_loss(y_test, logits)
-        # print(test_loss, iou)
+        # iou = metr.calc_iou_loss(y_test, logits)
+        # iou_val = iou[0]
+        # print(test_loss, iou_val)
 
     logger.info("Inference loss -> {0}".format(test_loss))
-    logger.info("Inference IoU -> {0}".format(iou[0]))
+    # logger.info("Inference IoU -> {0}".format(iou_val))
 
     # Save Voxel Model
     gv_ = logits.numpy()
     gv = np.squeeze(gv_)
-    print(gv.shape)
-    returned_image = binvox_viz.get_volume_views(gv, VOXEL_SAVE_PATH)
-    cv2.imshow('voxel snapshot', returned_image)
+    voxel_model_save_fp = VOXEL_SAVE_PATH + '\\voxel_model.binvox'
+    sample_path = 'E:\\Datasets\\3D_Reconstruction\\Inference\\Ground Truth\\model.binvox'
+    bin_rw.np_binvox(gv, voxel_model_save_fp, sample_path)
+
+    # returned_image = bin_viz.get_volume_views(gv, VOXEL_SAVE_PATH)
 
     logger.info("End of program execution")

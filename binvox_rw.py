@@ -290,6 +290,23 @@ def write(voxel_model, fp):
         fp.write(chr(state).encode('latin-1'))
         fp.write(chr(ctr).encode('latin-1'))
 
+def np_binvox(data, new_file, sample_path):
+    with open(sample_path, 'rb') as f:
+        Y_model = read_as_3d_array(f)
+
+    for i in range(32):
+        for j in range(32):
+            for k in range(32):
+                # 0.5 is the threshold that can be changed
+                if data[i][j][k] > 0.5:
+                    data[i][j][k] = int(1)
+                else:
+                    data[i][j][k] = int(0)
+    data = data.astype('uint8')
+    Y_pred_model = Voxels(data, [32, 32, 32], Y_model.translate, Y_model.scale, Y_model.axis_order)
+
+    with open(new_file, 'wb') as f:
+        Y_pred_model.write(f)
 
 if __name__ == '__main__':
     import doctest
