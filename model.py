@@ -1,37 +1,64 @@
 # ----------------------------------------------Import required Modules----------------------------------------------- #
 
 import tensorflow as tf
-from tensorflow.keras.applications.vgg16 import VGG16
+from tensorflow.keras.applications import VGG16, ResNet50, DenseNet121
 
 # ----------------------------------------------Define Model---------------------------------------------------------- #
 
 # Build complete autoencoder model
-def build_autoencoder(input_shape = (224, 224, 3), describe = False):
+def build_autoencoder(input_shape = (224, 224, 3), enc_net = "vgg", describe = False):
     '''
     Build Autoencoder Model.\n
     :param input_shape: Input Shape passed to Autoencoder Model (224,224,3) (default)\n
     :return: Autoencoder Model
     '''
-    def encoder(inp, input_shape=(224,224,3)):
+    def encoder(inp, enc_net = "vgg", input_shape=(224,224,3)):
         '''
         Build Encoder Model.\n
         :param inp: Input to Autoencoder Model\n
         :param input_shape: Input Shape passed to Autoencoder Model (224,224,3) (default)\n
         :return: Encoder Model
         '''
-        vgg = VGG16(include_top = False,
-                    weights = "imagenet",
-                    input_shape = input_shape,
-                    pooling = "none")
 
-        vgg.trainable = False
+        if enc_net == "vgg":
+          cnn_model = VGG16(include_top = False,
+                      weights = "imagenet",
+                      input_shape = input_shape,
+                      pooling = "none")
 
-        part_vgg = tf.keras.models.Model(inputs = vgg.input,
-                                        outputs = vgg.get_layer(name="block4_conv2").output,
-                                        name = "part_vgg")
+          cnn_model.trainable = False
+
+          pre_trained = tf.keras.models.Model(inputs = cnn_model.input,
+                                          outputs = cnn_model.get_layer(name="block4_conv2").output,
+                                          name = "vgg")
+
+        elif enc_net == "resnet":
+            cnn_model = ResNet50(include_top = False,
+                      weights = "imagenet",
+                      input_shape = input_shape,
+                      pooling = "none")
+
+            cnn_model.trainable = False
+
+            pre_trained = tf.keras.models.Model(inputs = cnn_model.input,
+                                            outputs = cnn_model.get_layer(name="conv3_block1_out").output,
+                                            name = "resnet")
+
+        elif enc_net == "densenet":
+            cnn_model = DenseNet121(include_top = False,
+                      weights = "imagenet",
+                      input_shape = input_shape,
+                      pooling = "none")
+
+            cnn_model.trainable = False
+
+            pre_trained = tf.keras.models.Model(inputs = cnn_model.input,
+                                            outputs = cnn_model.get_layer(name="pool3_relu").output,
+                                            name = "densenet")
 
         # https://keras.io/guides/transfer_learning/
-        x = part_vgg(inputs = inp, training=False)
+        x = pre_trained(inputs = inp, training=False)
+        # print(pre_trained.summary())
 
         layer10 = tf.keras.layers.Conv2D(filters = 512,
                                          kernel_size = 1,
@@ -120,7 +147,7 @@ def build_autoencoder(input_shape = (224, 224, 3), describe = False):
     input = tf.keras.Input(shape = input_shape, name = "input_layer")
 
     # Encoder Model
-    encoder_model = tf.keras.Model(input, encoder(input), name = "encoder")
+    encoder_model = tf.keras.Model(input, encoder(input, enc_net), name = "encoder")
     if describe:
         print("\nEncoder Model Summary:\n")
         encoder_model.summary()

@@ -163,7 +163,7 @@ if __name__ == '__main__':
     saved_model_files = utils.model_sort(saved_model_files)
     if len(saved_model_files) == 0:
         resume_epoch = 0
-        autoencoder_model = model.build_autoencoder(input_shape, describe=False)
+        autoencoder_model = model.build_autoencoder(input_shape, enc_net="vgg",describe=False)
         logger.info("Starting Training phase")
     else:
         latest_model = os.path.join(checkpoint_path, saved_model_files[-1])
