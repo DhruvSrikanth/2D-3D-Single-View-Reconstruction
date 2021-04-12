@@ -14,6 +14,7 @@ import os
 # RENDERING_PATH        = 'E:\\Datasets\\3D_Reconstruction\ShapeNetRendering\\{}\\{}\\rendering'
 # VOXEL_PATH            = 'E:\\Datasets\\3D_Reconstruction\ShapeNetVox32\\{}\\{}\\model.binvox'
 
+# Inference
 # RENDERING_PATH = os.path.join('E:\\Datasets\\3D_Reconstruction\Inference\Rendered Image', os.listdir('E:\\Datasets\\3D_Reconstruction\Inference\Rendered Image')[0])
 # GROUND_TRUTH_PATH = os.path.join('E:\\Datasets\\3D_Reconstruction\Inference\Ground Truth', os.listdir('E:\\Datasets\\3D_Reconstruction\Inference\Ground Truth')[0])
 # VOXEL_SAVE_PATH = os.path.join('E:\\Datasets\\3D_Reconstruction\Inference')
@@ -38,7 +39,7 @@ VOXEL_PATH            = 'C:\\Users\\bidnu\\Documents\\Suraj_Docs\\3D_Project\\Sh
 # ----------------------------------------------Training Configuration------------------------------------------------ #
 
 input_shape = (224, 224, 3)  # input shape
-encoder_cnn = "vgg" # pretrained encoder cnn (vgg, resnet or densenet)
+encoder_cnn = "vgg" # pre-trained encoder cnn (vgg, resnet or densenet)
 batch_size = 32  # batch size
 epochs = 100 #250 # Number of epochs
 learning_rate = 0.001 # Learning rate
