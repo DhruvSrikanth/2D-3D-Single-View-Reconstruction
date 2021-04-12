@@ -37,6 +37,7 @@ parser.add_argument('--taxonomy_path', type=str, default=cfg.TAXONOMY_FILE_PATH,
 parser.add_argument('--render_path', type=str, default=cfg.RENDERING_PATH, help='Specify the rendering images path.')
 parser.add_argument('--voxel_path', type=str, default=cfg.VOXEL_PATH, help='Specify the voxel models path.')
 
+parser.add_argument('--encoder_cnn', type=str, default=cfg.encoder_cnn, help='Pre trained encoder model architecture.')
 parser.add_argument('--batch_size', type=int, default=cfg.batch_size, help='Batch size.')
 parser.add_argument('--epochs', type=int, default=cfg.epochs, help='Number of epochs.')
 parser.add_argument('--lr', type=float, default=cfg.learning_rate, help='Learning rate.')
@@ -56,6 +57,7 @@ VOXEL_PATH = args.voxel_path
 # ----------------------------------------------Training Configuration------------------------------------------------ #
 
 input_shape = cfg.input_shape
+encoder_cnn = args.encoder_cnn
 batch_size = args.batch_size
 epochs = args.epochs
 learning_rate = args.lr
@@ -163,17 +165,17 @@ if __name__ == '__main__':
     saved_model_files = utils.model_sort(saved_model_files)
     if len(saved_model_files) == 0:
         resume_epoch = 0
-        autoencoder_model = model.build_autoencoder(input_shape, enc_net="vgg",describe=False)
+        autoencoder_model = model.build_autoencoder(input_shape, enc_net = encoder_cnn, describe = False)
         logger.info("Starting Training phase")
     else:
         latest_model = os.path.join(checkpoint_path, saved_model_files[-1])
-        autoencoder_model = tf.keras.models.load_model(latest_model, compile=False)
+        autoencoder_model = tf.keras.models.load_model(latest_model, compile = False)
         resume_epoch = int(latest_model.split("_")[-1].split(".")[0])
         logger.info("Resuming Training on Epoch -> {0}".format(resume_epoch + 1))
         logger.info("Loading Model from -> {0}".format(latest_model))
 
     # Loss
-    loss_fn = tf.keras.losses.BinaryCrossentropy(from_logits=True)
+    loss_fn = tf.keras.losses.BinaryCrossentropy(from_logits = True)
 
     # Learning Rate Scheduler
     # learning rate becomes 0.01*0.5 after 150 epochs else it is 0.01*1.0
@@ -276,7 +278,7 @@ if __name__ == '__main__':
 
         # Save Model During Training
         if (epoch + 1) % model_save_frequency == 0:
-            model_save_file = 'ae_model_epoch_{0}.h5'.format(epoch + 1)
+            model_save_file = 'ae_{0}_model_epoch_{1}.h5'.format(encoder_cnn, epoch + 1)
             model_save_file_path = os.path.join(checkpoint_path, model_save_file)
             logger.info("Saving Autoencoder Model at {0}".format(model_save_file_path))
             tf.keras.models.save_model(model=autoencoder_model, filepath=model_save_file_path, overwrite=True,

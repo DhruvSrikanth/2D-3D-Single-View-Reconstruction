@@ -14,15 +14,15 @@ import os
 # RENDERING_PATH        = 'E:\\Datasets\\3D_Reconstruction\ShapeNetRendering\\{}\\{}\\rendering'
 # VOXEL_PATH            = 'E:\\Datasets\\3D_Reconstruction\ShapeNetVox32\\{}\\{}\\model.binvox'
 
-RENDERING_PATH = os.path.join('E:\\Datasets\\3D_Reconstruction\Inference\Rendered Image', os.listdir('E:\\Datasets\\3D_Reconstruction\Inference\Rendered Image')[0])
-GROUND_TRUTH_PATH = os.path.join('E:\\Datasets\\3D_Reconstruction\Inference\Ground Truth', os.listdir('E:\\Datasets\\3D_Reconstruction\Inference\Ground Truth')[0])
-VOXEL_SAVE_PATH = os.path.join('E:\\Datasets\\3D_Reconstruction\Inference')
+# RENDERING_PATH = os.path.join('E:\\Datasets\\3D_Reconstruction\Inference\Rendered Image', os.listdir('E:\\Datasets\\3D_Reconstruction\Inference\Rendered Image')[0])
+# GROUND_TRUTH_PATH = os.path.join('E:\\Datasets\\3D_Reconstruction\Inference\Ground Truth', os.listdir('E:\\Datasets\\3D_Reconstruction\Inference\Ground Truth')[0])
+# VOXEL_SAVE_PATH = os.path.join('E:\\Datasets\\3D_Reconstruction\Inference')
 
 
 # Suraj
-# TAXONOMY_FILE_PATH    = 'C:\\Users\\bidnu\\Documents\\Suraj_Docs\\3D_Project\\ShapeNet_P2V\\ShapeNet.json'
-# RENDERING_PATH        = 'C:\\Users\\bidnu\\Documents\\Suraj_Docs\\3D_Project\\ShapeNet_P2V\\ShapeNetRendering\\{}\\{}\\rendering'
-# VOXEL_PATH            = 'C:\\Users\\bidnu\\Documents\\Suraj_Docs\\3D_Project\\ShapeNet_P2V\\ShapeNetVox32\\{}\\{}\\model.binvox'
+TAXONOMY_FILE_PATH    = 'C:\\Users\\bidnu\\Documents\\Suraj_Docs\\3D_Project\\ShapeNet_P2V\\ShapeNet.json'
+RENDERING_PATH        = 'C:\\Users\\bidnu\\Documents\\Suraj_Docs\\3D_Project\\ShapeNet_P2V\\ShapeNetRendering\\{}\\{}\\rendering'
+VOXEL_PATH            = 'C:\\Users\\bidnu\\Documents\\Suraj_Docs\\3D_Project\\ShapeNet_P2V\\ShapeNetVox32\\{}\\{}\\model.binvox'
 
 # Rishab
 # TAXONOMY_FILE_PATH    = 'D:\\P2V\\Pix2Vox-master\\datasets\\ShapeNet_test_v3.json'
@@ -38,6 +38,7 @@ VOXEL_SAVE_PATH = os.path.join('E:\\Datasets\\3D_Reconstruction\Inference')
 # ----------------------------------------------Training Configuration------------------------------------------------ #
 
 input_shape = (224, 224, 3)  # input shape
+encoder_cnn = "vgg" # pretrained encoder cnn (vgg, resnet or densenet)
 batch_size = 32  # batch size
 epochs = 100 #250 # Number of epochs
 learning_rate = 0.001 # Learning rate
