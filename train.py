@@ -7,6 +7,7 @@ import argparse
 import numpy
 
 import tensorflow as tf
+from keras import backend as K
 
 from tqdm import tqdm
 
@@ -73,12 +74,17 @@ logger = logger_train
 
 logger.info("image input shape -> {0}\n bacth_size -> {1}\n epochs -> {2}\n learning_rate -> {3}".format(input_shape, batch_size, epochs, learning_rate))
 
-# ----------------------------------------------Train Function-------------------------------------------------------- #
+# -----------------------------Define Loss, Optimizer & Compute Metrics Function--------------------------------------- #
 
-# Compute Loss
-# @tf.function(experimental_compile=True)
+
+# Loss
+loss_fn = tf.keras.losses.BinaryCrossentropy(from_logits=True)
+
+# Optimizer
+opt = tf.keras.optimizers.Adam()
+
 @tf.function
-def compute_train_metrics(x, y, mode="Train"):
+def compute_train_metrics(x, y, opt, mode="Train"):
     '''
     Compute training metrics for custom training loop.\n
     :param x: input to model\n
@@ -92,24 +98,23 @@ def compute_train_metrics(x, y, mode="Train"):
         # The operations that the layer applies
         # to its inputs are going to be recorded
         # on the GradientTape.
-
-        # TODO: check the training parameter in the below function
-        logits = autoencoder_model(x, training=True)  # Logits for this minibatch
-
+        x_ = train_model(x)
+        # Logits for this minibatch
         # Compute the loss value for this minibatch.
-        loss_value = loss_fn(y, logits)
+        # Compute reconstruction loss
+        loss = loss_fn(y, x_)
+        loss += sum(train_model.losses)
 
-    if mode == "train":
-        # Use the gradient tape to automatically retrieve
-        # the gradients of the trainable variables with respect to the loss.
-        grads = tape.gradient(loss_value, autoencoder_model.trainable_weights)
+        if mode == "train":
+            # Use the gradient tape to automatically retrieve
+            # the gradients of the trainable variables with respect to the loss.
+            grads = tape.gradient(loss, train_model.trainable_weights)
 
-        # Run one step of gradient descent by updating
-        # the value of the variables to minimize the loss.
-        opt.apply_gradients(zip(grads, autoencoder_model.trainable_weights))
+            # Run one step of gradient descent by updating
+            # the value of the variables to minimize the loss.
+            opt.apply_gradients(zip(grads, train_model.trainable_weights))
 
-    return loss_value, logits
-
+    return loss, x_
 
 # ----------------------------------------------Run Main Code--------------------------------------------------------- #
 
@@ -165,25 +170,20 @@ if __name__ == '__main__':
     saved_model_files = utils.model_sort(saved_model_files)
     if len(saved_model_files) == 0:
         resume_epoch = 0
-        autoencoder_model = model.build_autoencoder(input_shape, enc_net = encoder_cnn, describe = False)
+        input = tf.keras.Input(shape=input_shape, name="input_layer")
+        train_model = model.VariationalAutoEncoder(input)
         logger.info("Starting Training phase")
     else:
         latest_model = os.path.join(checkpoint_path, saved_model_files[-1])
-        autoencoder_model = tf.keras.models.load_model(latest_model, compile = False)
+        train_model = tf.keras.models.load_model(latest_model, compile = False)
         resume_epoch = int(latest_model.split("_")[-1].split(".")[0])
         logger.info("Resuming Training on Epoch -> {0}".format(resume_epoch + 1))
         logger.info("Loading Model from -> {0}".format(latest_model))
-
-    # Loss
-    loss_fn = tf.keras.losses.BinaryCrossentropy(from_logits = True)
 
     # Learning Rate Scheduler
     # learning rate becomes 0.01*0.5 after 150 epochs else it is 0.01*1.0
     values = [learning_rate, learning_rate * 0.5]
     learning_rate_fn = tf.keras.optimizers.schedules.PiecewiseConstantDecay(boundaries, values)
-
-    # Optimizer
-    opt = tf.keras.optimizers.Adam()
 
     # Tensorboard Graph
     current_time = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -278,10 +278,10 @@ if __name__ == '__main__':
 
         # Save Model During Training
         if (epoch + 1) % model_save_frequency == 0:
-            model_save_file = 'ae_{0}_model_epoch_{1}.h5'.format(encoder_cnn, epoch + 1)
+            model_save_file = 'vae_{0}_model_epoch_{1}.h5'.format(encoder_cnn, epoch + 1)
             model_save_file_path = os.path.join(checkpoint_path, model_save_file)
-            logger.info("Saving Autoencoder Model at {0}".format(model_save_file_path))
-            tf.keras.models.save_model(model=autoencoder_model, filepath=model_save_file_path, overwrite=True,
+            logger.info("Saving Variational Autoencoder Model at {0}".format(model_save_file_path))
+            tf.keras.models.save_model(model=train_model, filepath=model_save_file_path, overwrite=True,
                                        include_optimizer=True)
 
     logger.info("End of program execution")
