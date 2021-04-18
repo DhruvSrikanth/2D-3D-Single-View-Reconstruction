@@ -65,6 +65,7 @@ learning_rate = args.lr
 boundaries = cfg.boundaries
 model_save_frequency = args.model_save_frequency
 checkpoint_path = args.checkpoint_path
+ae_flavor = "variational"
 
 # ----------------------------------------------Set Logger------------------------------------------------------------ #
 
@@ -75,7 +76,6 @@ logger = logger_train
 logger.info("image input shape -> {0}\n bacth_size -> {1}\n epochs -> {2}\n learning_rate -> {3}".format(input_shape, batch_size, epochs, learning_rate))
 
 # -----------------------------Define Loss, Optimizer & Compute Metrics Function--------------------------------------- #
-
 
 # Loss
 loss_fn = tf.keras.losses.BinaryCrossentropy(from_logits=True)
@@ -98,12 +98,13 @@ def compute_train_metrics(x, y, opt, mode="Train"):
         # The operations that the layer applies
         # to its inputs are going to be recorded
         # on the GradientTape.
-        x_ = train_model(x)
+        x_logits = train_model(x)
         # Logits for this minibatch
         # Compute the loss value for this minibatch.
         # Compute reconstruction loss
-        loss = loss_fn(y, x_)
+        loss = loss_fn(x_batch_train, x_logits)
         loss += sum(train_model.losses)
+
 
         if mode == "train":
             # Use the gradient tape to automatically retrieve
@@ -114,10 +115,11 @@ def compute_train_metrics(x, y, opt, mode="Train"):
             # the value of the variables to minimize the loss.
             opt.apply_gradients(zip(grads, train_model.trainable_weights))
 
-    return loss, x_
+    return loss, x_logits
 
 # ----------------------------------------------Run Main Code--------------------------------------------------------- #
 
+restiction_size = 100
 if __name__ == '__main__':
 
     # Read Data
@@ -131,7 +133,7 @@ if __name__ == '__main__':
                                         mode='train')
 
     # train_path_list_sample = train_path_list[:5000] + train_path_list[-5000:]  # just for testing purposes
-    train_path_list_sample = train_path_list[:10]
+    train_path_list_sample = train_path_list[:restiction_size]
 
     # train_dataset = tf.data.Dataset.from_generator(data.tf_data_generator,
     #                                                args=[train_path_list_sample],
@@ -147,7 +149,7 @@ if __name__ == '__main__':
 
     val_path_list_sample = val_path_list #val_path_list[:20] + val_path_list[-20:]  # just for testing purposes
 
-    val_path_list_sample = val_path_list_sample[:10]
+    val_path_list_sample = val_path_list_sample[:restiction_size]
 
     # val_dataset = tf.data.Dataset.from_generator(data.tf_data_generator,
     #                                              args=[val_path_list_sample],
@@ -168,17 +170,19 @@ if __name__ == '__main__':
 
     saved_model_files = glob.glob(checkpoint_path + "/*.h5")
     saved_model_files = utils.model_sort(saved_model_files)
-    if len(saved_model_files) == 0:
-        resume_epoch = 0
-        input = tf.keras.Input(shape=input_shape, name="input_layer")
-        train_model = model.VariationalAutoEncoder(input)
-        logger.info("Starting Training phase")
-    else:
-        latest_model = os.path.join(checkpoint_path, saved_model_files[-1])
-        train_model = tf.keras.models.load_model(latest_model, compile = False)
-        resume_epoch = int(latest_model.split("_")[-1].split(".")[0])
-        logger.info("Resuming Training on Epoch -> {0}".format(resume_epoch + 1))
-        logger.info("Loading Model from -> {0}".format(latest_model))
+    new = False
+    if new:
+        if len(saved_model_files) == 0:
+            resume_epoch = 0
+            train_model = model.AutoEncoder(custom_input_shape=tuple([-1] +list(input_shape)), ae_flavour=ae_flavor, enc_net=encoder_cnn)
+            logger.info("Starting Training phase")
+        else:
+            latest_model = os.path.join(checkpoint_path, saved_model_files[-1])
+            train_model = tf.keras.models.load_model(latest_model, compile = False)
+            resume_epoch = int(latest_model.split("_")[-1].split(".")[0])
+            logger.info("Resuming Training on Epoch -> {0}".format(resume_epoch + 1))
+            logger.info("Loading Model from -> {0}".format(latest_model))
+
 
     # Learning Rate Scheduler
     # learning rate becomes 0.01*0.5 after 150 epochs else it is 0.01*1.0

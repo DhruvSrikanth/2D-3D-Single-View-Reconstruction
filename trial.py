@@ -1,9 +1,6 @@
-# ----------------------------------------------Import required Modules----------------------------------------------- #
-
 import tensorflow as tf
 from tensorflow.keras.applications import VGG16, ResNet50, DenseNet121
 
-# ----------------------------------------------Define Model---------------------------------------------------------- #
 
 class Sampling(tf.keras.layers.Layer):
     """Uses (z_mean, z_log_var) to sample z, the vector encoding a digit."""
@@ -14,6 +11,7 @@ class Sampling(tf.keras.layers.Layer):
         dim = tf.shape(z_mean)[1]
         epsilon = tf.keras.backend.random_normal(shape=(batch, dim))
         return z_mean + tf.exp(0.5 * z_log_var) * epsilon
+
 
 class Encoder(tf.keras.Model):
 
@@ -100,6 +98,7 @@ class Encoder(tf.keras.Model):
         elif self.ae_flavour == "vanilla":
             return layer12_elu
 
+
 class Decoder(tf.keras.Model):
 
     def __init__(self, ae_flavour="vanilla"):
@@ -163,6 +162,8 @@ class Decoder(tf.keras.Model):
 
         return layer5_reshape_out
 
+
+
 class AutoEncoder(tf.keras.Model):
   """Combines the encoder and decoder into an end-to-end model for training."""
 
@@ -185,8 +186,6 @@ class AutoEncoder(tf.keras.Model):
 
   def call(self, inputs, training=False):
 
-    print(self.encoder.summary())
-    print(self.decoder.summary())
     if self.ae_flavour == "variational":
         z_mean, z_log_var, z = self.encoder(inputs, training=training)
         kl_loss = self.compute_KL_loss((z_mean, z_log_var))
@@ -198,3 +197,43 @@ class AutoEncoder(tf.keras.Model):
     # Add KL divergence regularization loss.
     self.add_loss(kl_loss)
     return reconstructed
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+vae = AutoEncoder(ae_flavour="variational")
+
+import os
+
+RENDERING_PATH = os.path.join('E:\\Datasets\\3D_Reconstruction\Inference\Rendered Image',
+                              os.listdir('E:\\Datasets\\3D_Reconstruction\Inference\Rendered Image')[0])
+GROUND_TRUTH_PATH = os.path.join('E:\\Datasets\\3D_Reconstruction\Inference\Ground Truth',
+                                 os.listdir('E:\\Datasets\\3D_Reconstruction\Inference\Ground Truth')[0])
+inference_paths = [RENDERING_PATH, GROUND_TRUTH_PATH]
+
+import data
+
+test_dataset = data.tf_data_generator2(inference_paths, 'Inference')
+
+import numpy as np
+for x_test, y_test in test_dataset:
+    x_test = tf.reshape(tensor=x_test, shape=(-1, 224, 224, 3))
+    y_test = tf.reshape(tensor=y_test, shape=(-1, 32, 32, 32))
+
+    gv = vae(x_test, training = True)
+    gv_ = gv.numpy()
+    gv_ = np.squeeze(gv_)
+
+    print(gv_.shape)
