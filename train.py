@@ -98,7 +98,7 @@ def compute_train_metrics(x, y, opt, mode="Train"):
         # The operations that the layer applies
         # to its inputs are going to be recorded
         # on the GradientTape.
-        x_logits = train_model(x)
+        x_logits = train_model(x, training=True)
         # Logits for this minibatch
         # Compute the loss value for this minibatch.
         # Compute reconstruction loss
