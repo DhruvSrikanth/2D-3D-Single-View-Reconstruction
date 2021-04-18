@@ -102,7 +102,7 @@ def compute_train_metrics(x, y, opt, mode="Train"):
         # Logits for this minibatch
         # Compute the loss value for this minibatch.
         # Compute reconstruction loss
-        loss = loss_fn(x_batch_train, x_logits)
+        loss = loss_fn(y, x_logits)
         loss += sum(train_model.losses)
 
 
@@ -170,19 +170,16 @@ if __name__ == '__main__':
 
     saved_model_files = glob.glob(checkpoint_path + "/*.h5")
     saved_model_files = utils.model_sort(saved_model_files)
-    new = False
-    if new:
-        if len(saved_model_files) == 0:
-            resume_epoch = 0
-            train_model = model.AutoEncoder(custom_input_shape=tuple([-1] +list(input_shape)), ae_flavour=ae_flavor, enc_net=encoder_cnn)
-            logger.info("Starting Training phase")
-        else:
-            latest_model = os.path.join(checkpoint_path, saved_model_files[-1])
-            train_model = tf.keras.models.load_model(latest_model, compile = False)
-            resume_epoch = int(latest_model.split("_")[-1].split(".")[0])
-            logger.info("Resuming Training on Epoch -> {0}".format(resume_epoch + 1))
-            logger.info("Loading Model from -> {0}".format(latest_model))
-
+    if len(saved_model_files) == 0:
+        resume_epoch = 0
+        train_model = model.AutoEncoder(custom_input_shape=tuple([-1] + list(input_shape)), ae_flavour=ae_flavor, enc_net=encoder_cnn)
+        logger.info("Starting Training phase")
+    else:
+        latest_model = os.path.join(checkpoint_path, saved_model_files[-1])
+        train_model = tf.keras.models.load_model(latest_model, compile=False)
+        resume_epoch = int(latest_model.split("_")[-1].split(".")[0])
+        logger.info("Resuming Training on Epoch -> {0}".format(resume_epoch + 1))
+        logger.info("Loading Model from -> {0}".format(latest_model))
 
     # Learning Rate Scheduler
     # learning rate becomes 0.01*0.5 after 150 epochs else it is 0.01*1.0

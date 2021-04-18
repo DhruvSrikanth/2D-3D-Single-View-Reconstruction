@@ -1,4 +1,4 @@
- # Create a folder containing the 2 dataset tgz files and this shell script.
+# Create a folder containing the 2 dataset tgz files and this shell script.
  # Then run the shell script by typing ./init_config.sh or source init_config.sh
  # The script will create the dataset folders and extract the tgz files to those folders
  # It will then create src folder and git clone the master brance of the repo (needs git username and pwd at this stage)
@@ -14,8 +14,8 @@
 
  # change tgz file names to actual dataset files
  # RENDER_DS_PATH=${1:-CS_Minors.tgz}
- RENDER_DS_FILE="CS_Minors.tgz"
- VOXEL_DS_FILE="Personal_docs.tgz"
+ RENDER_DS_FILE="ShapeNetRendering.tgz"
+ VOXEL_DS_FILE="ShapeNetVox32.tgz"
 
  # function to change directories
  ch_dir () {
@@ -53,8 +53,8 @@
      sudo mv {"src/${GIT_DIR}"/*,"src/${GIT_DIR}"/.*} "src/"
      rmdir "$GIT_DIR"
 
-     echo "Starting install of CUDA and cuDNN"
-     source src/install.sh
+      echo "Starting install of CUDA and cuDNN"
+      source src/install.sh
  else
      echo "Directory exists"
  fi
@@ -63,9 +63,9 @@
  # Which folder is the virtual env created? (inside src or outside src?)
 
  # ch_dir $SRC_DIR # if virual env should be inside src folder
- # sudo apt install python3-venv
- # python3 -m venv 3dr_venv
- # source 3dr_venv/bin/activate
- # sudo pip install -r src/requirements.txt
+  sudo apt install python3-venv
+  python3 -m venv 3dr_venv
+  source 3dr_venv/bin/activate
+  sudo pip install -r src/requirements.txt
 
  # exit

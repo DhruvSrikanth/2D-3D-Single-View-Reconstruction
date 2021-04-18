@@ -167,7 +167,7 @@ class AutoEncoder(tf.keras.Model):
   """Combines the encoder and decoder into an end-to-end model for training."""
 
   def __init__(self, custom_input_shape=(-1, 224, 224, 3), ae_flavour="vanilla", enc_net="vgg", latent_dim=128):
-    super(AutoEncoder, self).__init__(name = "V" + ae_flavour.lower()[1:] + " AutoEncoder")
+    super(AutoEncoder, self).__init__(name = "V" + ae_flavour.lower()[1:] + "AutoEncoder")
     self.custom_input_shape = custom_input_shape[1:]
     self.ae_flavour = ae_flavour.lower()
     self.enc_net = enc_net.lower()
@@ -185,8 +185,6 @@ class AutoEncoder(tf.keras.Model):
 
   def call(self, inputs, training=False):
 
-    print(self.encoder.summary())
-    print(self.decoder.summary())
     if self.ae_flavour == "variational":
         z_mean, z_log_var, z = self.encoder(inputs, training=training)
         kl_loss = self.compute_KL_loss((z_mean, z_log_var))
