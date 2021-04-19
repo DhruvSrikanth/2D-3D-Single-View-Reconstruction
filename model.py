@@ -111,7 +111,7 @@ class Decoder(tf.keras.Model):
         # CNN-Block
 
         if self.ae_flavour == "variational":
-            self.layer0 = tf.keras.layers.Dense(2048, activation="relu")
+            self.layer0 = tf.keras.layers.Dense(2*2*2*256, activation="relu")
             self.layer0_reshape = tf.keras.layers.Reshape((2, 2, 2, 256))
 
         self.layer1 = tf.keras.layers.Convolution3DTranspose(filters=128, kernel_size=4, strides=(2, 2, 2),
@@ -186,7 +186,6 @@ class AutoEncoder(tf.keras.Model):
     return kl_loss
 
   def call(self, inputs, training=False):
-
     if self.ae_flavour == "variational":
         z_mean, z_log_var, z = self.encoder(inputs, training=training)
         kl_loss = self.compute_KL_loss((z_mean, z_log_var))
