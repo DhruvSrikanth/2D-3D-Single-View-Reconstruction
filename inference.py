@@ -2,20 +2,16 @@
 
 import os
 import glob
-import datetime
 import argparse
 import numpy as np
 import cv2
 
 import tensorflow as tf
 
-from tqdm import tqdm
-
 import config as cfg
 from logger import logger_test
 import data
 import metrics as metr
-import save_data
 import utils
 import binvox_rw as bin_rw
 import binvox_viz as bin_viz
@@ -35,6 +31,7 @@ tf.get_logger().setLevel('ERROR')
 # Argument Parser
 parser = argparse.ArgumentParser(description='3D Reconstruction Using an Autoencoder via Transfer Learning')
 
+parser.add_argument('--taxonomy_path', type=str, default=cfg.TAXONOMY_FILE_PATH, help='Taxonomy file path.')
 parser.add_argument('--render_path', type=str, default=cfg.RENDERING_PATH, help='Specify the rendering images path.')
 parser.add_argument('--ground_truth_path', type=str, default=cfg.GROUND_TRUTH_PATH, help='Specify the ground truth path.')
 parser.add_argument('--voxel_save_path', type=str, default=cfg.VOXEL_SAVE_PATH, help='Specify the voxel models path.')
@@ -44,6 +41,7 @@ args = parser.parse_args()
 
 # ----------------------------------------------Set File Paths-------------------------------------------------------- #
 
+TAXONOMY_FILE_PATH = args.taxonomy_path
 RENDERING_PATH = args.render_path
 GROUND_TRUTH_PATH = args.ground_truth_path
 VOXEL_SAVE_PATH = args.voxel_save_path
@@ -85,8 +83,8 @@ def compute_train_metrics(x, y):
 if __name__ == '__main__':
 
     # Read Data
-    inference_paths = [RENDERING_PATH, GROUND_TRUTH_PATH]
-    test_dataset = data.tf_data_generator(inference_paths, 'Inference')
+    inference_DataLoader = data.DataLoader(TAXONOMY_FILE_PATH, RENDERING_PATH, GROUND_TRUTH_PATH, mode="inference")
+    inference_data_gen = inference_DataLoader.dataset_gen
 
     # Load Model for Inference phase
     # Check if model save path exists
@@ -114,7 +112,7 @@ if __name__ == '__main__':
     loss_fn = tf.keras.losses.BinaryCrossentropy(from_logits=True)
 
     # logger.info("Testing phase running now")
-    for x_test, y_test in test_dataset:
+    for x_test, y_test in inference_data_gen:
         x_test = tf.reshape(tensor = x_test, shape = (-1, 224, 224, 3))
         y_test = tf.reshape(tensor=y_test, shape=(-1, 32, 32, 32))
 

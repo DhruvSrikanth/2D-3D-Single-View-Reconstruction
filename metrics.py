@@ -6,7 +6,6 @@ import tensorflow as tf
 # ----------------------------------------------Define Optimizer------------------------------------------------------ #
 
 # Calculate IOU loss
-@tf.function
 def calc_iou_loss(y_true, y_pred):
     '''
     Calculate Intersection Over Union for the given batch\n
@@ -64,7 +63,6 @@ def calc_iou_loss(y_true, y_pred):
 # # print(ans)
 # print("iou - {}".format(ans))
 
-@tf.function
 def iou_dict_update(tax_id, iou_dict, iou):
     '''
     Update IOU dictionary for each class.\n
@@ -82,7 +80,6 @@ def iou_dict_update(tax_id, iou_dict, iou):
 
     return iou_dict
 
-@tf.function
 def calc_mean_iou(iou_dict, mean_iou):
     '''
     Calculate mean iou for all classes based.\n

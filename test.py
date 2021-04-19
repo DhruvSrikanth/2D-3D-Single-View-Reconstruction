@@ -86,13 +86,8 @@ def compute_train_metrics(x,y):
 if __name__ == '__main__':
 
     # Read Data
-    # Read Taxonomy JSON file
-    taxonomy_dict = data.read_taxonomy_JSON(TAXONOMY_FILE_PATH)
-
-    # Get test path lists and test data generator
-    test_path_list = data.get_xy_paths(taxonomy_dict=taxonomy_dict, rendering_path=RENDERING_PATH, voxel_path=VOXEL_PATH, mode='test')
-    test_dataset = tf.data.Dataset.from_generator(data.tf_data_generator, args=[test_path_list], output_types = (tf.float32, tf.float32, tf.string))
-
+    test_DataLoader = data.DataLoader(TAXONOMY_FILE_PATH, RENDERING_PATH, VOXEL_PATH, batch_size=batch_size, mode="train")
+    test_data_gen = test_DataLoader.dataset_gen
     # Load Model for Testing phase
     # Check if model save path exists
     if not os.path.isdir(checkpoint_path):
@@ -128,12 +123,12 @@ if __name__ == '__main__':
     mean_iou_test = dict()
 
     # Training Loop
-    num_test_steps = len(test_path_list) // batch_size
+    num_test_steps = test_DataLoader.length // batch_size
 
     iou_dict = dict()
 
     logger.info("Testing phase running now")
-    for step, (x_batch_test, y_batch_test, tax_id) in tqdm(enumerate(test_dataset), total=num_test_steps):
+    for step, (x_batch_test, y_batch_test, tax_id) in tqdm(enumerate(test_data_gen), total=num_test_steps):
         tax_id = tax_id.numpy()
         tax_id = [item.decode("utf-8") for item in tax_id] # byte string (b'hello' to regular string 'hello')
 

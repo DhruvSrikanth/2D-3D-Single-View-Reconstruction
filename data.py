@@ -23,18 +23,26 @@ class DataLoader(object):
     :param mode: model mode (train, test or val)\n
     :param batch_size: model input data batch size
     """
-    def __init__(self, JSON_filepath, rendering_filepath, voxel_filepath, mode="train", batch_size=8):
+    def __init__(self, JSON_filepath, rendering_filepath, voxel_filepath, mode="train", batch_size=8, restrict=False, restriction_size=100):
         self.JSON_filepath = JSON_filepath
         self.rendering_filepath = rendering_filepath
         self.voxel_filepath = voxel_filepath
         self.mode = mode.lower()
         self.batch_size = batch_size
+        self.restriction_size = restriction_size
 
         # either all the functions can be called here or individually. But for individual call outside, mode and batch_size should be
         # passes as arguments to get_xy_paths() and data_gen() respectively
         self.taxonomy_dict = self.read_taxonomy_JSON()
-        self.path_list = self.get_xy_paths()
+        if self.mode == "inference":
+            self.path_list = [self.rendering_filepath, self.voxel_filepath]
+        elif self.mode == "train" or self.mode == "val":
+            if restrict:
+                self.path_list = self.get_xy_paths()[:self.restriction_size]
+            else:
+                self.path_list = self.get_xy_paths()
         self.dataset_gen = self.data_gen(self.path_list)
+        self.length = len(self.path_list)
 
     def read_taxonomy_JSON(self):
         '''
@@ -96,7 +104,7 @@ class DataLoader(object):
         :return: Generator object
         '''
 
-        if self.mode == "train" or self.mode == "val":
+        if self.mode == "train" or self.mode == "val" or self.mode == "test":
             # Shuffle path list
             random.shuffle(file_list)  # in-place
 
@@ -126,13 +134,16 @@ class DataLoader(object):
 
                 yield self.img, self.vox, self.tax_id
 
-        elif self.mode == "test" or self.mode == "inference":
-            self.rgba_in = Image.open(self.rendering_filepath)
-            self.background = Image.new("RGB", self.rgba_in.size, (255, 255, 255))
-            self.background.paste(self.rgba_in, mask=self.rgba_in.split()[3])  # 3 is the alpha channel
+        elif self.mode == "inference":
+            self.rgba_in = Image.open(self.path_list[0])
+            if len(self.rgba_in.split()) == 4:
+                self.background = Image.new("RGB", self.rgba_in.size, (255, 255, 255))
+                self.background.paste(self.rgba_in, mask=self.rgba_in.split()[3])  # 3 is the alpha channel
+            elif len(self.rgba_in.split()) == 3:
+                self.background = self.rgba_in
             self.rendering_image = cv2.resize(np.array(self.background).astype(np.float32), (224, 224)) / 255.
 
-            with open(self.voxel_filepath, 'rb') as f:
+            with open(self.path_list[1], 'rb') as f:
                 self.volume = binvox_rw.read_as_3d_array(f)
             self.volume = self.volume.data.astype(np.float32)
 

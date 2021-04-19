@@ -28,27 +28,27 @@ class Encoder(tf.keras.Model):
         self.latent_dim = latent_dim
         # CNN-Block
         if self.enc_net == "vgg":
-            self.cnn_model = VGG16(include_top=False, weights="imagenet", input_shape=self.custom_input_shape,
+            cnn_model = VGG16(include_top=False, weights="imagenet", input_shape=self.custom_input_shape,
                                    pooling="none")
-            self.cnn_model.trainable = False
-            self.pre_trained = tf.keras.models.Model(inputs=self.cnn_model.input,
-                                                     outputs=self.cnn_model.get_layer(name="block4_conv2").output,
+            cnn_model.trainable = False
+            self.pre_trained = tf.keras.models.Model(inputs=cnn_model.input,
+                                                     outputs=cnn_model.get_layer(name="block4_conv2").output,
                                                      name="vgg")
 
         elif self.enc_net == "resnet":
-            self.cnn_model = ResNet50(include_top=False, weights="imagenet", input_shape=self.custom_input_shape,
+            cnn_model = ResNet50(include_top=False, weights="imagenet", input_shape=self.custom_input_shape,
                                       pooling="none")
-            self.cnn_model.trainable = False
-            self.pre_trained = tf.keras.models.Model(inputs=self.cnn_model.input,
-                                                     outputs=self.cnn_model.get_layer(name="conv3_block1_out").output,
+            cnn_model.trainable = False
+            self.pre_trained = tf.keras.models.Model(inputs=cnn_model.input,
+                                                     outputs=cnn_model.get_layer(name="conv3_block1_out").output,
                                                      name="resnet")
 
         elif self.enc_net == "densenet":
-            self.cnn_model = DenseNet121(include_top=False, weights="imagenet", input_shape=self.custom_input_shape,
+            cnn_model = DenseNet121(include_top=False, weights="imagenet", input_shape=self.custom_input_shape,
                                          pooling="none")
-            self.cnn_model.trainable = False
-            self.pre_trained = tf.keras.models.Model(inputs=self.cnn_model.input,
-                                                     outputs=self.cnn_model.get_layer(name="pool3_relu").output,
+            cnn_model.trainable = False
+            self.pre_trained = tf.keras.models.Model(inputs=cnn_model.input,
+                                                     outputs=cnn_model.get_layer(name="pool3_relu").output,
                                                      name="densenet")
 
         # Encoder-Block
@@ -177,6 +177,7 @@ class AutoEncoder(tf.keras.Model):
     self.encoder = Encoder(custom_input_shape=self.custom_input_shape, ae_flavour=self.ae_flavour, enc_net=self.enc_net, latent_dim=self.latent_dim)
     self.decoder = Decoder(ae_flavour=self.ae_flavour)
 
+  # @tf.function
   def compute_KL_loss(self, inputs):
     if self.ae_flavour == "variational":
         z_mean, z_log_var = inputs

@@ -113,32 +113,26 @@ def compute_train_metrics(x, y, opt, mode="Train"):
 # ----------------------------------------------Run Main Code--------------------------------------------------------- #
 
 restrict_dataset = True
-restiction_size = 100
-DataLoader_obj = data.DataLoader(cfg.TAXONOMY_FILE_PATH, cfg.RENDERING_PATH, cfg.VOXEL_PATH, "train", 8)
-data_list = DataLoader_obj.path_list
-data_gen = DataLoader_obj.dataset_gen
-data_gen = DataLoader_obj.data_gen(data_list, 4)
+restriction_size = 500
 
 if __name__ == '__main__':
 
     # Read Data
-    # Read Taxonomy JSON file
-    taxonomy_dict = data.read_taxonomy_JSON(TAXONOMY_FILE_PATH)
 
     # Get train path lists and train data generator
-    train_path_list = data.get_xy_paths(taxonomy_dict=taxonomy_dict, rendering_path=RENDERING_PATH, voxel_path=VOXEL_PATH, mode='train')
     if restrict_dataset:
-        train_path_list_sample = train_path_list[:restiction_size]
+        train_DataLoader = data.DataLoader(TAXONOMY_FILE_PATH, RENDERING_PATH, VOXEL_PATH, "train", batch_size, restrict=restrict_dataset, restriction_size=restriction_size)
     else:
-        train_path_list_sample = train_path_list
+        train_DataLoader = data.DataLoader(TAXONOMY_FILE_PATH, RENDERING_PATH, VOXEL_PATH, "train", batch_size)
+    train_data_gen = train_DataLoader.dataset_gen
+
 
     # Get validation path lists and validation data generator
-    val_path_list = data.get_xy_paths(taxonomy_dict=taxonomy_dict, rendering_path=RENDERING_PATH, voxel_path=VOXEL_PATH, mode='val')
-    val_path_list_sample = val_path_list
     if restrict_dataset:
-        val_path_list_sample = val_path_list_sample[:restiction_size]
+        val_DataLoader = data.DataLoader(TAXONOMY_FILE_PATH, RENDERING_PATH, VOXEL_PATH, "val", batch_size, restrict=restrict_dataset, restriction_size=restriction_size)
     else:
-        val_path_list_sample = val_path_list_sample
+        val_DataLoader = data.DataLoader(TAXONOMY_FILE_PATH, RENDERING_PATH, VOXEL_PATH, "val", batch_size)
+    val_data_gen = val_DataLoader.dataset_gen
 
     # Load Model and Resume Training, otherwise Start Training
     # Check if model save path exists
@@ -150,8 +144,9 @@ if __name__ == '__main__':
         # print("\nFound model save directory at - ", checkpoint_path)
         logger.info("Found model save directory at -> {0}".format(checkpoint_path))
 
-    saved_model_files = glob.glob(checkpoint_path + "/*.h5")
+    saved_model_files = os.listdir(checkpoint_path)
     saved_model_files = utils.model_sort(saved_model_files)
+    print(saved_model_files)
     if len(saved_model_files) == 0:
         resume_epoch = 0
         autoencoder_model = model.AutoEncoder(custom_input_shape=tuple([-1] + list(input_shape)), ae_flavour=autoencoder_flavour, enc_net=encoder_cnn)
@@ -186,8 +181,8 @@ if __name__ == '__main__':
     mean_iou_val = dict()
 
     # Training Loop
-    num_training_samples = len(train_path_list_sample)
-    num_validation_steps = len(val_path_list_sample) // batch_size
+    num_training_samples = train_DataLoader.length
+    num_validation_steps = val_DataLoader.length // batch_size
 
     end_epoch = resume_epoch + epochs
     for epoch in range(resume_epoch, end_epoch, 1):
@@ -200,10 +195,7 @@ if __name__ == '__main__':
         iou_dict = dict()
 
         # Iterate over the batches of the dataset.
-        # for step, (x_batch_train, y_batch_train, tax_id) in enumerate(train_dataset):
-        for step, (x_batch_train, y_batch_train, tax_id) in enumerate(data.data_gen(train_path_list_sample, batch_size)):
-            # tax_id = tax_id.numpy()
-            # tax_id = [item.decode("utf-8") for item in tax_id]  # byte string (b'hello' to regular string 'hello')
+        for step, (x_batch_train, y_batch_train, tax_id) in enumerate(train_data_gen):
 
             train_loss, logits = compute_train_metrics(x_batch_train, y_batch_train, "train")
 
@@ -235,7 +227,7 @@ if __name__ == '__main__':
         # Iterate over the batches of the dataset and calculate validation loss
         logger.info("Validation phase running now for Epoch - {0}".format(epoch + 1))
         # for step, (x_batch_val, y_batch_val, tax_id) in tqdm(enumerate(val_dataset), total=num_validation_steps):
-        for step, (x_batch_val, y_batch_val, tax_id) in tqdm(enumerate(data.data_gen(val_path_list_sample, batch_size)), total=num_validation_steps):
+        for step, (x_batch_val, y_batch_val, tax_id) in tqdm(enumerate(val_data_gen), total=num_validation_steps):
             # tax_id = tax_id.numpy()
             # tax_id = [item.decode("utf-8") for item in tax_id]  # byte string (b'hello' to regular string 'hello')
 
@@ -261,9 +253,9 @@ if __name__ == '__main__':
 
         # Save Model During Training
         if (epoch + 1) % model_save_frequency == 0:
-            model_save_file = 'vae_{0}_model_epoch_{1}.h5'.format(encoder_cnn, epoch + 1)
+            model_save_file = autoencoder_flavour + 'AutoEncoder_{0}_model_epoch_{1}.h5'.format(encoder_cnn, epoch + 1)
             model_save_file_path = os.path.join(checkpoint_path, model_save_file)
-            logger.info("Saving Variational Autoencoder Model at {0}".format(model_save_file_path))
-            tf.keras.models.save_model(model=autoencoder_model, filepath=model_save_file_path, overwrite=True, include_optimizer=True)
-
+            logger.info("Saving {0} Autoencoder Model at {1}".format("V" + autoencoder_flavour.lower()[1:], model_save_file_path))
+            # tf.keras.models.save_model(model=autoencoder_model, filepath=model_save_file_path, overwrite=True, include_optimizer=True)
+            # autoencoder_model.save(model_save_file_path, save_format='tf')
     logger.info("End of program execution")
