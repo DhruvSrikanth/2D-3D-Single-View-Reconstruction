@@ -4,7 +4,6 @@ import os
 import glob
 import datetime
 import argparse
-import numpy
 
 import tensorflow as tf
 
@@ -14,7 +13,6 @@ import config as cfg
 from logger import logger_test
 import data
 import metrics as metr
-import save_data
 import utils
 
 # ----------------------------------------------Set Environment Variables--------------------------------------------- #
@@ -157,9 +155,9 @@ if __name__ == '__main__':
     logger.info("Overall mean Testing IoU -> {0}". format(allClass_mean_iou))
 
     # Save testing IoU values in CSV file
-    save_data.record_iou_data(3, step+1,mean_iou_test)
+    utils.record_iou_data(3, step+1,mean_iou_test)
 
     # Save Loss value in CSV file
-    save_data.record_loss(2, step+1,test_loss.numpy())
+    utils.record_loss(2, step+1,test_loss.numpy())
 
     logger.info("End of program execution")

@@ -15,7 +15,6 @@ import data
 import model
 import metrics as metr
 import utils
-import save_data
 
 # ----------------------------------------------Set Environment Variables--------------------------------------------- #
 
@@ -115,6 +114,10 @@ def compute_train_metrics(x, y, opt, mode="Train"):
 
 restrict_dataset = True
 restiction_size = 100
+DataLoader_obj = data.DataLoader(cfg.TAXONOMY_FILE_PATH, cfg.RENDERING_PATH, cfg.VOXEL_PATH, "train", 8)
+data_list = DataLoader_obj.path_list
+data_gen = DataLoader_obj.dataset_gen
+data_gen = DataLoader_obj.data_gen(data_list, 4)
 
 if __name__ == '__main__':
 
@@ -219,7 +222,7 @@ if __name__ == '__main__':
         logger.info("Overall mean Training IoU -> {0}".format(allClass_mean_iou))
 
         # Save training IoU values in CSV file
-        save_data.record_iou_data(1, epoch + 1, mean_iou_train)
+        utils.record_iou_data(1, epoch + 1, mean_iou_train)
 
         # TODO: Training and Validation Loss -> 1 graph, Training and Validation IOU (mean IOU over all classes)
         with train_summary_writer.as_default():
@@ -227,7 +230,7 @@ if __name__ == '__main__':
             tf.summary.scalar('overall_train_iou', allClass_mean_iou, step=epoch)
 
         # Save Loss value in CSV file
-        save_data.record_loss(1, epoch+1,train_loss.numpy())
+        utils.record_loss(1, epoch+1,train_loss.numpy())
 
         # Iterate over the batches of the dataset and calculate validation loss
         logger.info("Validation phase running now for Epoch - {0}".format(epoch + 1))
@@ -254,7 +257,7 @@ if __name__ == '__main__':
         logger.info("Overall mean Validation IoU -> {0}".format(allClass_mean_iou))
 
         # Save validation IoU values in CSV file
-        save_data.record_iou_data(2, epoch + 1, mean_iou_val)
+        utils.record_iou_data(2, epoch + 1, mean_iou_val)
 
         # Save Model During Training
         if (epoch + 1) % model_save_frequency == 0:

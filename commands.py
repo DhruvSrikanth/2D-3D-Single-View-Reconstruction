@@ -91,3 +91,10 @@
 # sudo cp cuda/include/cudnn*.h /usr/local/cuda/include 
 # sudo cp -P cuda/lib64/libcudnn* /usr/local/cuda/lib64 
 # sudo chmod a+r /usr/local/cuda/include/cudnn*.h /usr/local/cuda/lib64/libcudnn*
+
+# to run shell script with bad interpreter error, run this command before
+# sed -i -e 's/\r$//' init_config.sh
+# sed -i -e 's/\r$//' install.sh
+
+# on vim to convert from dos to unix line endings use ":set ff=unix" and then save file
+# to get back dos line endings use ":set ff=dos" and then save file

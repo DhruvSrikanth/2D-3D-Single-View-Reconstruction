@@ -11,123 +11,129 @@ import binvox_rw
 
 from logger import logger_train, logger_test
 
+
 # ----------------------------------------------Define Dataset Reader and Generator----------------------------------- #
 
-def read_taxonomy_JSON(filepath):
-    '''
-    Read JSON file containing dataset taxonomy.\n
-    :param filepath: JSON file path\n
-    :return: Un-JSON-ified dictionary
-    '''
-    with open(filepath, encoding='utf-8') as file:
-        taxonomy_dict = json.loads(file.read())
-    return taxonomy_dict
+class DataLoader(object):
+    """
+    DataLoader class. Reads  the JSON, image and voxel files\n
+    :param JSON_filepath: path to dataset JSON file\n
+    :param rendering_filepath: path to rendering folder of ShapeNet dataset\n
+    :param voxel_filepath: path to voxel folder of ShapeNet dataset\n
+    :param mode: model mode (train, test or val)\n
+    :param batch_size: model input data batch size
+    """
+    def __init__(self, JSON_filepath, rendering_filepath, voxel_filepath, mode="train", batch_size=8):
+        self.JSON_filepath = JSON_filepath
+        self.rendering_filepath = rendering_filepath
+        self.voxel_filepath = voxel_filepath
+        self.mode = mode.lower()
+        self.batch_size = batch_size
 
-def get_xy_paths(taxonomy_dict, rendering_path, voxel_path, mode = 'train'):
-    '''
-    Get list of file paths for x (images) and y (voxel models).\n
-    :param taxonomy_dict: Dataset Taxonomy Dictionary\n
-    :param mode: Dataset type -> 'train' (default), 'test'\n
-    :return: List containing file path for x and corresponding y
-    '''
-    if mode == "test":
-        logger = logger_test
-    else:
-        logger = logger_train
-        
-    path_list = []
-    logger.info("Starting to read input data files for {0} phase now".format(mode))
-    for i in range(len(taxonomy_dict)):
-        logger.info("Reading files of Taxonomy ID -> {0}, Class ->{1}".format(taxonomy_dict[i]["taxonomy_id"],
-                                                                             taxonomy_dict[i]["taxonomy_name"]))
-        for sample in taxonomy_dict[i][mode]:
-            render_txt = os.path.join(rendering_path.format(taxonomy_dict[i]["taxonomy_id"], sample), "renderings.txt")
-            if not os.path.exists(render_txt):
-                logger.warn("Could not find file -> {0}".format(render_txt))
-                continue
-            with open(render_txt, 'r') as f:
-                while(1):
-                    value = next(f,'end')
-                    if value == 'end':
-                        break
-                    else:
-                        img_path = os.path.join(rendering_path.format(taxonomy_dict[i]["taxonomy_id"], sample),
-                                                value.strip('\n'))
-                        target_path = voxel_path.format(taxonomy_dict[i]["taxonomy_id"], sample)
-                        path_list.append([img_path, target_path, taxonomy_dict[i]["taxonomy_id"]])
+        # either all the functions can be called here or individually. But for individual call outside, mode and batch_size should be
+        # passes as arguments to get_xy_paths() and data_gen() respectively
+        self.taxonomy_dict = self.read_taxonomy_JSON()
+        self.path_list = self.get_xy_paths()
+        self.dataset_gen = self.data_gen(self.path_list)
 
-    # Shuffle path list
-    random.shuffle(path_list) # in-place
+    def read_taxonomy_JSON(self):
+        '''
+        Read JSON file containing dataset taxonomy.\n
+        :return: Un-JSON-ified dictionary
+        '''
+        with open(self.JSON_filepath, encoding='utf-8') as file:
+            self.taxonomy_dict = json.loads(file.read())
+        return self.taxonomy_dict
 
-    logger.info("Finished reading all the files")
-    return path_list
+    def get_xy_paths(self):
+        '''
+        Get list of file paths for x (images) and y (voxel models).\n
+        :return: List containing file path for x and corresponding y
+        '''
+        if self.mode == "test":
+            self.logger = logger_test
+        else:
+            self.logger = logger_train
 
-# TODO: look at data augmentation because there is a class imbalance of images (Ask Sir)
-# ----> He said check with and without to see if it is required after a performance comparison but thinks it will not be
-#       required since classification is not being done in this case
+        self.path_list = []
+        self.logger.info("Starting to read input data files for {0} phase now".format(self.mode))
+        for i in range(len(self.taxonomy_dict)):
+            self.logger.info(
+                "Reading files of Taxonomy ID -> {0}, Class -> {1}".format(self.taxonomy_dict[i]["taxonomy_id"],
+                                                                           self.taxonomy_dict[i]["taxonomy_name"]))
 
-def tf_data_generator(file_list, mode = 'Train'):
-    '''
-    Create generator from file path list.\n
-    :param file_list: List of file paths\n
-    :return: Generator object
-    '''
-    if mode == 'Train' or mode == 'Test':
-        for img, voxel, tax_id in file_list:
-            rgba_in = Image.open(img)
-            # background = Image.new("RGB", rgba_in.size, (255, 255, 255))
-            # background.paste(rgba_in, mask=rgba_in.split()[3]) # 3 is the alpha channel
-            rendering_image = cv2.resize(np.array(rgba_in).astype(np.float32), (224,224)) / 255.
+            for sample in self.taxonomy_dict[i][self.mode]:
+                self.render_txt = os.path.join(
+                    self.rendering_filepath.format(self.taxonomy_dict[i]["taxonomy_id"], sample), "renderings.txt")
 
-            with open(voxel, 'rb') as f:
-              volume = binvox_rw.read_as_3d_array(f)
-              volume = volume.data.astype(np.float32)
+                if not os.path.exists(self.render_txt):
+                    self.logger.warn("Could not find file -> {0}".format(self.render_txt))
+                    continue
 
-            yield rendering_image, volume, tax_id
+                with open(self.render_txt, 'r') as f:
+                    while (1):
+                        self.value = next(f, 'end')
+                        if self.value == 'end':
+                            break
+                        else:
+                            self.img_path = os.path.join(
+                                self.rendering_filepath.format(self.taxonomy_dict[i]["taxonomy_id"], sample),
+                                self.value.strip('\n'))
+                            self.target_path = self.voxel_filepath.format(self.taxonomy_dict[i]["taxonomy_id"], sample)
+                            self.path_list.append(
+                                [self.img_path, self.target_path, self.taxonomy_dict[i]["taxonomy_id"]])
 
-    elif mode == 'Inference':
-        img, voxel = file_list[0], file_list[1]
-        rgba_in = Image.open(img)
-        rendering_image = cv2.resize(np.array(rgba_in).astype(np.float32), (224, 224)) / 255.
+        # Shuffle path list
+        random.shuffle(self.path_list)  # in-place
 
-        with open(voxel, 'rb') as f:
-            volume = binvox_rw.read_as_3d_array(f)
-        volume = volume.data.astype(np.float32)
+        self.logger.info("Finished reading all the files")
+        return self.path_list
 
-        yield rendering_image, volume
+    def data_gen(self, file_list):
+        '''
+        Create generator from file path list.\n
+        :param file_list: List of file paths\n
+        :return: Generator object
+        '''
 
-def data_gen(file_list, batch_size=1):
-  '''
-  Create generator from file path list.\n
-  :param file_list: List of file paths\n
-  :param batch_size: batch_size\n
-  :return: Generator object
-  '''
-  # Shuffle path list
-  random.shuffle(file_list) # in-place
+        if self.mode == "train" or self.mode == "val":
+            # Shuffle path list
+            random.shuffle(file_list)  # in-place
 
-  l = len(file_list)
-  random.shuffle(file_list)
+            self.l = len(file_list)
+            random.shuffle(file_list)
 
-  for idx in range(0,l,batch_size):
-      img, vox, tax_id = [],[],[]
-      sample = file_list[idx:min(idx + batch_size, l)]
-      
-      for imgs,voxel,t_id in sample:
-          rgba_in = Image.open(imgs)
-          background = Image.new("RGB", rgba_in.size, (255, 255, 255))
-          background.paste(rgba_in, mask=rgba_in.split()[3]) # 3 is the alpha channel
-          rendering_image = cv2.resize(np.array(background).astype(np.float32), (224,224)) / 255.
+            for idx in range(0, self.l, self.batch_size):
+                self.img, self.vox, self.tax_id = [], [], []
+                self.sample = file_list[idx:min(idx + self.batch_size, self.l)]
 
-          with open(voxel, 'rb') as f:
-              volume = binvox_rw.read_as_3d_array(f)
-              volume = volume.data.astype(np.float32)
+                for imgs, voxel, t_id in self.sample:
+                    self.rgba_in = Image.open(imgs)
+                    self.background = Image.new("RGB", self.rgba_in.size, (255, 255, 255))
+                    self.background.paste(self.rgba_in, mask=self.rgba_in.split()[3])  # 3 is the alpha channel
+                    self.rendering_image = cv2.resize(np.array(self.background).astype(np.float32), (224, 224)) / 255.
 
-          img.append(rendering_image)
-          vox.append(volume)
-          tax_id.append(t_id)
+                    with open(voxel, 'rb') as f:
+                        self.volume = binvox_rw.read_as_3d_array(f)
+                        self.volume = self.volume.data.astype(np.float32)
 
-      img = np.asarray(img).reshape(-1,224,224,3)
-      vox = np.asarray(vox).reshape(-1,32,32,32)
+                    self.img.append(self.rendering_image)
+                    self.vox.append(self.volume)
+                    self.tax_id.append(t_id)
 
-      yield img, vox, tax_id
+                self.img = np.asarray(self.img).reshape(-1, 224, 224, 3)
+                self.vox = np.asarray(self.vox).reshape(-1, 32, 32, 32)
+
+                yield self.img, self.vox, self.tax_id
+
+        elif self.mode == "test" or self.mode == "inference":
+            self.rgba_in = Image.open(self.rendering_filepath)
+            self.background = Image.new("RGB", self.rgba_in.size, (255, 255, 255))
+            self.background.paste(self.rgba_in, mask=self.rgba_in.split()[3])  # 3 is the alpha channel
+            self.rendering_image = cv2.resize(np.array(self.background).astype(np.float32), (224, 224)) / 255.
+
+            with open(self.voxel_filepath, 'rb') as f:
+                self.volume = binvox_rw.read_as_3d_array(f)
+            self.volume = self.volume.data.astype(np.float32)
+
+            yield self.rendering_image, self.volume
