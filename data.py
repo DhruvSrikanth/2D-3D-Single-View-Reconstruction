@@ -75,39 +75,6 @@ def tf_data_generator(file_list, mode = 'Train'):
     if mode == 'Train' or mode == 'Test':
         for img, voxel, tax_id in file_list:
             rgba_in = Image.open(img)
-            background = Image.new("RGB", rgba_in.size, (255, 255, 255))
-            background.paste(rgba_in, mask=rgba_in.split()[3]) # 3 is the alpha channel
-            rendering_image = cv2.resize(np.array(background).astype(np.float32), (224,224)) / 255.
-
-            with open(voxel, 'rb') as f:
-              volume = binvox_rw.read_as_3d_array(f)
-              volume = volume.data.astype(np.float32)
-
-            yield rendering_image, volume, tax_id
-
-    elif mode == 'Inference':
-        img, voxel = file_list[0], file_list[1]
-        rgba_in = Image.open(img)
-        background = Image.new("RGB", rgba_in.size, (255, 255, 255))
-        background.paste(rgba_in, mask=rgba_in.split()[3])  # 3 is the alpha channel
-        rendering_image = cv2.resize(np.array(background).astype(np.float32), (224, 224)) / 255.
-
-        with open(voxel, 'rb') as f:
-            volume = binvox_rw.read_as_3d_array(f)
-        volume = volume.data.astype(np.float32)
-
-        yield rendering_image, volume
-
-
-def tf_data_generator2(file_list, mode = 'Train'):
-    '''
-    Create generator from file path list.\n
-    :param file_list: List of file paths\n
-    :return: Generator object
-    '''
-    if mode == 'Train' or mode == 'Test':
-        for img, voxel, tax_id in file_list:
-            rgba_in = Image.open(img)
             # background = Image.new("RGB", rgba_in.size, (255, 255, 255))
             # background.paste(rgba_in, mask=rgba_in.split()[3]) # 3 is the alpha channel
             rendering_image = cv2.resize(np.array(rgba_in).astype(np.float32), (224,224)) / 255.
@@ -121,8 +88,6 @@ def tf_data_generator2(file_list, mode = 'Train'):
     elif mode == 'Inference':
         img, voxel = file_list[0], file_list[1]
         rgba_in = Image.open(img)
-        # background = Image.new("RGB", rgba_in.size, (255, 255, 255))
-        # background.paste(rgba_in, mask=rgba_in.split()[3])  # 3 is the alpha channel
         rendering_image = cv2.resize(np.array(rgba_in).astype(np.float32), (224, 224)) / 255.
 
         with open(voxel, 'rb') as f:

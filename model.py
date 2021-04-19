@@ -3,7 +3,7 @@
 import tensorflow as tf
 from tensorflow.keras.applications import VGG16, ResNet50, DenseNet121
 
-# ----------------------------------------------Define Model---------------------------------------------------------- #
+# ----------------------------------------------Define Sampling For Latent Space-------------------------------------- #
 
 class Sampling(tf.keras.layers.Layer):
     """Uses (z_mean, z_log_var) to sample z, the vector encoding a digit."""
@@ -14,6 +14,8 @@ class Sampling(tf.keras.layers.Layer):
         dim = tf.shape(z_mean)[1]
         epsilon = tf.keras.backend.random_normal(shape=(batch, dim))
         return z_mean + tf.exp(0.5 * z_log_var) * epsilon
+
+# ----------------------------------------------Define Model---------------------------------------------------------- #
 
 class Encoder(tf.keras.Model):
 

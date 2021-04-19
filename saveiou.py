@@ -58,7 +58,6 @@ test_table = 0
 test_telephone = 0
 test_watercraft = 0
 
-
 # -----------------------Function to append Training data from each epoch into a row in the CSV----------------------- #
 
 def record_iou_data_train(epoch, iou):
@@ -109,7 +108,6 @@ def record_iou_data_train(epoch, iou):
     # Save Dataframe as CSV file
     df_train.to_csv(os.path.join(os.getcwd(), 'logs', 'Training-IOU-per-Epoch-per-Class.csv'), index=False)
 
-
 # ----------------------Function to append Validation data from each epoch into a row in the CSV---------------------- #
 
 def record_iou_data_val(epoch, iou):
@@ -159,8 +157,7 @@ def record_iou_data_val(epoch, iou):
     # Save Dataframe as CSV file
     df_val.to_csv(os.path.join(os.getcwd(), 'logs', 'Validation-IOU-per-Epoch-per-Class.csv'), index=False)
 
-
-# -------------_---------Function to append Testing data from each epoch into a row in the CSV------------------------ #
+# -----------------------Function to append Testing data from each epoch into a row in the CSV------------------------ #
 
 def record_iou_data_test(epoch, iou):
 
@@ -209,7 +206,6 @@ def record_iou_data_test(epoch, iou):
     # Save Dataframe as CSV file
     df_test.to_csv(os.path.join(os.getcwd(), 'logs', 'Testing-IOU-per-Epoch-per-Class.csv'), index=False)
 
-
 # -------------------------------------Function to save training loss per epoch--------------------------------------- #
 
 def record_training_loss(epoch,train_loss):
@@ -225,7 +221,6 @@ def record_training_loss(epoch,train_loss):
 
     # Save dataframe as CSV file
     df_train_loss.to_csv(os.path.join(os.getcwd(), 'logs', 'Training-Loss-per-Epoch.csv'), index=False)
-
 
 # -------------------------------------Function to save testing loss per epoch--------------------------------------- #
 

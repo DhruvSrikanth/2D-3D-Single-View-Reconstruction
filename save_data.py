@@ -11,7 +11,6 @@ df_skeleton_iou = pd.DataFrame(
 
 df_skeleton_loss = pd.DataFrame(columns=['Epoch_no', 'Loss'])
 
-
 # --------------------------Function to deal with switch cases to save IoU values per Epoch-------------------------- #
 
 def switch_case_iou(field):
@@ -30,7 +29,6 @@ def switch_case_loss(field):
         2 : 'Testing-Loss-per-Epoch.csv'
     }
     return switcher.get(field)
-
 
 # -------------------------------------Function to save values of IoU per Epoch------------------------------------- #
 
@@ -84,7 +82,6 @@ def record_iou_data(field, epoch, iou):
     
     # Save Dataframe as CSV file
     df.to_csv(os.path.join(os.getcwd(), 'logs', save_file), index=False)
-
 
 # ------------------------------------------Function to save Loss per Epoch------------------------------------------ #
 

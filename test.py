@@ -92,21 +92,10 @@ if __name__ == '__main__':
     taxonomy_dict = data.read_taxonomy_JSON(TAXONOMY_FILE_PATH)
 
     # Get test path lists and test data generator
-    test_path_list = data.get_xy_paths(taxonomy_dict=taxonomy_dict,
-                                       rendering_path=RENDERING_PATH,
-                                       voxel_path=VOXEL_PATH,
-                                       mode='test')
-
-    test_path_list_sample = test_path_list[:20] + test_path_list[-20:]  # just for testing purposes
-
-    test_dataset = tf.data.Dataset.from_generator(data.tf_data_generator,
-                                                  args=[test_path_list_sample],
-                                                  output_types = (tf.float32, tf.float32, tf.string))
-
-    test_dataset = test_dataset.batch(batch_size).shuffle(150).prefetch(tf.data.AUTOTUNE)
+    test_path_list = data.get_xy_paths(taxonomy_dict=taxonomy_dict, rendering_path=RENDERING_PATH, voxel_path=VOXEL_PATH, mode='test')
+    test_dataset = tf.data.Dataset.from_generator(data.tf_data_generator, args=[test_path_list], output_types = (tf.float32, tf.float32, tf.string))
 
     # Load Model for Testing phase
-
     # Check if model save path exists
     if not os.path.isdir(checkpoint_path):
         logger.error("No saved model found. Please run train.py to train a model and save it for Testing purposes")
@@ -141,7 +130,7 @@ if __name__ == '__main__':
     mean_iou_test = dict()
 
     # Training Loop
-    num_test_steps = len(test_path_list_sample) // batch_size
+    num_test_steps = len(test_path_list) // batch_size
 
     iou_dict = dict()
 

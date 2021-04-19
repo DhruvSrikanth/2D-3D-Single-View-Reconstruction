@@ -4,10 +4,8 @@ import os
 import glob
 import datetime
 import argparse
-import numpy
 
 import tensorflow as tf
-from keras import backend as K
 
 from tqdm import tqdm
 
@@ -34,10 +32,11 @@ tf.get_logger().setLevel('ERROR')
 # Argument Parser
 parser = argparse.ArgumentParser(description='3D Reconstruction Using an Autoencoder via Transfer Learning')
 
-parser.add_argument('--taxonomy_path', type=str, default=cfg.TAXONOMY_FILE_PATH, help='Specify the taxonomy file path.')
-parser.add_argument('--render_path', type=str, default=cfg.RENDERING_PATH, help='Specify the rendering images path.')
-parser.add_argument('--voxel_path', type=str, default=cfg.VOXEL_PATH, help='Specify the voxel models path.')
+parser.add_argument('--taxonomy_path', type=str, default=cfg.TAXONOMY_FILE_PATH, help='Taxonomy file path.')
+parser.add_argument('--render_path', type=str, default=cfg.RENDERING_PATH, help='Rendering images path.')
+parser.add_argument('--voxel_path', type=str, default=cfg.VOXEL_PATH, help='Voxel models path.')
 
+parser.add_argument('--ae_flavour', type=str, default=cfg.autoencoder_flavour, help='AutoEncoder model architecture.')
 parser.add_argument('--encoder_cnn', type=str, default=cfg.encoder_cnn, help='Pre trained encoder model architecture.')
 parser.add_argument('--batch_size', type=int, default=cfg.batch_size, help='Batch size.')
 parser.add_argument('--epochs', type=int, default=cfg.epochs, help='Number of epochs.')
@@ -65,17 +64,21 @@ learning_rate = args.lr
 boundaries = cfg.boundaries
 model_save_frequency = args.model_save_frequency
 checkpoint_path = args.checkpoint_path
-ae_flavor = "variational"
+autoencoder_flavour = args.ae_flavour
 
 # ----------------------------------------------Set Logger------------------------------------------------------------ #
 
 logger = logger_train
 
+# -------------------------------------------Print Training Params---------------------------------------------------- #
+
+logger.info("Input Shape -> {0}\n Batch Size -> {1}\n Epochs -> {2}\n Learning Rate -> {3}".format(input_shape, batch_size, epochs, learning_rate))
+
 # -------------------------------------------Print Model Params------------------------------------------------------- #
 
-logger.info("image input shape -> {0}\n bacth_size -> {1}\n epochs -> {2}\n learning_rate -> {3}".format(input_shape, batch_size, epochs, learning_rate))
+logger.info("AutoEncoder Flavour -> {0}\n Encoder Block Type -> {1}\n ".format(autoencoder_flavour, encoder_cnn))
 
-# -----------------------------Define Loss, Optimizer & Compute Metrics Function--------------------------------------- #
+# -----------------------------Define Loss, Optimizer & Compute Metrics Function-------------------------------------- #
 
 # Loss
 loss_fn = tf.keras.losses.BinaryCrossentropy(from_logits=True)
@@ -91,35 +94,28 @@ def compute_train_metrics(x, y, opt, mode="Train"):
     :param y: output from model\n
     :return: training metrics i.e loss
     '''
-    # Open a GradientTape to record the operations run
-    # during the forward pass, which enables auto-differentiation.
+    # Open a GradientTape to record the operations run during the forward pass, which enables auto-differentiation.
     with tf.GradientTape() as tape:
-        # Run the forward pass of the layer.
-        # The operations that the layer applies
-        # to its inputs are going to be recorded
-        # on the GradientTape.
-        x_logits = train_model(x, training=True)
+        # Run the forward pass of the layer. The operations that the layer applies to its inputs are going to be recorded on the GradientTape.
         # Logits for this minibatch
+        x_logits = autoencoder_model(x, training=True)
         # Compute the loss value for this minibatch.
-        # Compute reconstruction loss
         loss = loss_fn(y, x_logits)
-        loss += sum(train_model.losses)
-
+        loss += sum(autoencoder_model.losses)
 
         if mode == "train":
-            # Use the gradient tape to automatically retrieve
-            # the gradients of the trainable variables with respect to the loss.
-            grads = tape.gradient(loss, train_model.trainable_weights)
-
-            # Run one step of gradient descent by updating
-            # the value of the variables to minimize the loss.
-            opt.apply_gradients(zip(grads, train_model.trainable_weights))
+            # Use the gradient tape to automatically retrieve the gradients of the trainable variables with respect to the loss.
+            grads = tape.gradient(loss, autoencoder_model.trainable_weights)
+            # Run one step of gradient descent by updating the value of the variables to minimize the loss.
+            opt.apply_gradients(zip(grads, autoencoder_model.trainable_weights))
 
     return loss, x_logits
 
 # ----------------------------------------------Run Main Code--------------------------------------------------------- #
 
+restrict_dataset = True
 restiction_size = 100
+
 if __name__ == '__main__':
 
     # Read Data
@@ -127,38 +123,21 @@ if __name__ == '__main__':
     taxonomy_dict = data.read_taxonomy_JSON(TAXONOMY_FILE_PATH)
 
     # Get train path lists and train data generator
-    train_path_list = data.get_xy_paths(taxonomy_dict=taxonomy_dict,
-                                        rendering_path=RENDERING_PATH,
-                                        voxel_path=VOXEL_PATH,
-                                        mode='train')
-
-    # train_path_list_sample = train_path_list[:5000] + train_path_list[-5000:]  # just for testing purposes
-    train_path_list_sample = train_path_list[:restiction_size]
-
-    # train_dataset = tf.data.Dataset.from_generator(data.tf_data_generator,
-    #                                                args=[train_path_list_sample],
-    #                                                output_types=(tf.float32, tf.float32, tf.string))
-
-    # train_dataset = train_dataset.batch(batch_size).shuffle(150).prefetch(tf.data.AUTOTUNE)
+    train_path_list = data.get_xy_paths(taxonomy_dict=taxonomy_dict, rendering_path=RENDERING_PATH, voxel_path=VOXEL_PATH, mode='train')
+    if restrict_dataset:
+        train_path_list_sample = train_path_list[:restiction_size]
+    else:
+        train_path_list_sample = train_path_list
 
     # Get validation path lists and validation data generator
-    val_path_list = data.get_xy_paths(taxonomy_dict=taxonomy_dict,
-                                      rendering_path=RENDERING_PATH,
-                                      voxel_path=VOXEL_PATH,
-                                      mode='val')
-
-    val_path_list_sample = val_path_list #val_path_list[:20] + val_path_list[-20:]  # just for testing purposes
-
-    val_path_list_sample = val_path_list_sample[:restiction_size]
-
-    # val_dataset = tf.data.Dataset.from_generator(data.tf_data_generator,
-    #                                              args=[val_path_list_sample],
-    #                                              output_types=(tf.float32, tf.float32, tf.string))
-
-    # val_dataset = val_dataset.batch(batch_size).shuffle(150).prefetch(tf.data.AUTOTUNE)
+    val_path_list = data.get_xy_paths(taxonomy_dict=taxonomy_dict, rendering_path=RENDERING_PATH, voxel_path=VOXEL_PATH, mode='val')
+    val_path_list_sample = val_path_list
+    if restrict_dataset:
+        val_path_list_sample = val_path_list_sample[:restiction_size]
+    else:
+        val_path_list_sample = val_path_list_sample
 
     # Load Model and Resume Training, otherwise Start Training
-
     # Check if model save path exists
     if not os.path.isdir(checkpoint_path):
         # print("\nNo model save directory found...\nCreating model save directory at - ", checkpoint_path)
@@ -172,11 +151,11 @@ if __name__ == '__main__':
     saved_model_files = utils.model_sort(saved_model_files)
     if len(saved_model_files) == 0:
         resume_epoch = 0
-        train_model = model.AutoEncoder(custom_input_shape=tuple([-1] + list(input_shape)), ae_flavour=ae_flavor, enc_net=encoder_cnn)
+        autoencoder_model = model.AutoEncoder(custom_input_shape=tuple([-1] + list(input_shape)), ae_flavour=autoencoder_flavour, enc_net=encoder_cnn)
         logger.info("Starting Training phase")
     else:
         latest_model = os.path.join(checkpoint_path, saved_model_files[-1])
-        train_model = tf.keras.models.load_model(latest_model, compile=False)
+        autoencoder_model = tf.keras.models.load_model(latest_model, compile=False)
         resume_epoch = int(latest_model.split("_")[-1].split(".")[0])
         logger.info("Resuming Training on Epoch -> {0}".format(resume_epoch + 1))
         logger.info("Loading Model from -> {0}".format(latest_model))
@@ -282,7 +261,6 @@ if __name__ == '__main__':
             model_save_file = 'vae_{0}_model_epoch_{1}.h5'.format(encoder_cnn, epoch + 1)
             model_save_file_path = os.path.join(checkpoint_path, model_save_file)
             logger.info("Saving Variational Autoencoder Model at {0}".format(model_save_file_path))
-            tf.keras.models.save_model(model=train_model, filepath=model_save_file_path, overwrite=True,
-                                       include_optimizer=True)
+            tf.keras.models.save_model(model=autoencoder_model, filepath=model_save_file_path, overwrite=True, include_optimizer=True)
 
     logger.info("End of program execution")

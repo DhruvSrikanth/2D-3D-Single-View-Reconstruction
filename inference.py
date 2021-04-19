@@ -68,20 +68,16 @@ def compute_train_metrics(x, y):
     :param y: output from model\n
     :return: training metrics i.e loss
     '''
-    # Open a GradientTape to record the operations run
-    # during the forward pass, which enables auto-differentiation.
+    # Open a GradientTape to record the operations run during the forward pass, which enables auto-differentiation.
     with tf.GradientTape() as tape:
-        # Run the forward pass of the layer.
-        # The operations that the layer applies
-        # to its inputs are going to be recorded
-        # on the GradientTape.
-
-        logits = autoencoder_model(x, training=False)  # Logits for this minibatch
-
+        # Run the forward pass of the layer. The operations that the layer applies to its inputs are going to be recorded on the GradientTape.
+        # Logits for this minibatch
+        x_logits = autoencoder_model(x, training=True)
         # Compute the loss value for this minibatch.
-        loss_value = loss_fn(y, logits)
+        loss = loss_fn(y, x_logits)
+        loss += sum(autoencoder_model.losses)
 
-    return loss_value, logits
+    return loss, x_logits
 
 
 # ----------------------------------------------Run Main Code--------------------------------------------------------- #
@@ -90,9 +86,7 @@ if __name__ == '__main__':
 
     # Read Data
     inference_paths = [RENDERING_PATH, GROUND_TRUTH_PATH]
-    test_dataset = data.tf_data_generator2(inference_paths, 'Inference')
-
-
+    test_dataset = data.tf_data_generator(inference_paths, 'Inference')
 
     # Load Model for Inference phase
     # Check if model save path exists
@@ -112,7 +106,7 @@ if __name__ == '__main__':
     saved_model_files = glob.glob(checkpoint_path + "\*.h5")
     latest_model = os.path.join(checkpoint_path, saved_model_files[-1])
     autoencoder_model = tf.keras.models.load_model(latest_model, compile=False)
-    # print(autoencoder_model.summary())
+    print(autoencoder_model.summary())
 
     logger.info("Loading Model from -> {0}".format(latest_model))
 
@@ -125,12 +119,11 @@ if __name__ == '__main__':
         y_test = tf.reshape(tensor=y_test, shape=(-1, 32, 32, 32))
 
         test_loss, logits = compute_train_metrics(x_test, y_test)
-        # iou = metr.calc_iou_loss(y_test, logits)
-        # iou_val = iou[0]
-        # print(test_loss, iou_val)
+        iou = metr.calc_iou_loss(y_test, logits)
+        iou_val = iou[0]
 
     logger.info("Inference loss -> {0}".format(test_loss))
-    # logger.info("Inference IoU -> {0}".format(iou_val))
+    logger.info("Inference IoU -> {0}".format(iou_val))
 
     # Save Voxel Model
     gv_ = logits.numpy()
