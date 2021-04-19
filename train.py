@@ -113,7 +113,7 @@ def compute_train_metrics(x, y, opt, mode="Train"):
 # ----------------------------------------------Run Main Code--------------------------------------------------------- #
 
 restrict_dataset = True
-restriction_size = 500
+restriction_size = 100
 
 if __name__ == '__main__':
 
@@ -145,15 +145,21 @@ if __name__ == '__main__':
         logger.info("Found model save directory at -> {0}".format(checkpoint_path))
 
     saved_model_files = os.listdir(checkpoint_path)
-    saved_model_files = utils.model_sort(saved_model_files)
-    print(saved_model_files)
+    # saved_model_files = utils.model_sort(saved_model_files)
+    # print(saved_model_files)
     if len(saved_model_files) == 0:
         resume_epoch = 0
         autoencoder_model = model.AutoEncoder(custom_input_shape=tuple([-1] + list(input_shape)), ae_flavour=autoencoder_flavour, enc_net=encoder_cnn)
         logger.info("Starting Training phase")
     else:
         latest_model = os.path.join(checkpoint_path, saved_model_files[-1])
-        autoencoder_model = tf.keras.models.load_model(latest_model, compile=False)
+        # autoencoder_model = tf.keras.models.load_model(latest_model, compile=False)
+        autoencoder_model = model.AutoEncoder(custom_input_shape=tuple([-1] + list(input_shape)), ae_flavour=autoencoder_flavour, enc_net=encoder_cnn)
+        temp_tensor = tf.zeros((8,224,224,3), dtype=tf.dtypes.float32)
+        reconstruction = autoencoder_model(temp_tensor)
+        del temp_tensor
+        del reconstruction
+        autoencoder_model.load_weights(latest_model)
         resume_epoch = int(latest_model.split("_")[-1].split(".")[0])
         logger.info("Resuming Training on Epoch -> {0}".format(resume_epoch + 1))
         logger.info("Loading Model from -> {0}".format(latest_model))
@@ -258,4 +264,5 @@ if __name__ == '__main__':
             logger.info("Saving {0} Autoencoder Model at {1}".format("V" + autoencoder_flavour.lower()[1:], model_save_file_path))
             # tf.keras.models.save_model(model=autoencoder_model, filepath=model_save_file_path, overwrite=True, include_optimizer=True)
             # autoencoder_model.save(model_save_file_path, save_format='tf')
+            autoencoder_model.save_weights(model_save_file_path, overwrite=True)
     logger.info("End of program execution")
