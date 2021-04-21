@@ -124,7 +124,8 @@ if __name__ == '__main__':
         train_DataLoader = data.DataLoader(TAXONOMY_FILE_PATH, RENDERING_PATH, VOXEL_PATH, "train", batch_size, restrict=restrict_dataset, restriction_size=restriction_size)
     else:
         train_DataLoader = data.DataLoader(TAXONOMY_FILE_PATH, RENDERING_PATH, VOXEL_PATH, "train", batch_size)
-    train_data_gen = train_DataLoader.dataset_gen
+    # train_data_gen = train_DataLoader.dataset_gen
+    train_path_list = train_DataLoader.path_list
 
 
     # Get validation path lists and validation data generator
@@ -132,7 +133,8 @@ if __name__ == '__main__':
         val_DataLoader = data.DataLoader(TAXONOMY_FILE_PATH, RENDERING_PATH, VOXEL_PATH, "val", batch_size, restrict=restrict_dataset, restriction_size=restriction_size)
     else:
         val_DataLoader = data.DataLoader(TAXONOMY_FILE_PATH, RENDERING_PATH, VOXEL_PATH, "val", batch_size)
-    val_data_gen = val_DataLoader.dataset_gen
+    # val_data_gen = val_DataLoader.dataset_gen
+    val_path_list = val_DataLoader.path_list
 
     # Load Model and Resume Training, otherwise Start Training
     # Check if model save path exists
@@ -201,7 +203,7 @@ if __name__ == '__main__':
         iou_dict = dict()
 
         # Iterate over the batches of the dataset.
-        for step, (x_batch_train, y_batch_train, tax_id) in enumerate(train_data_gen):
+        for step, (x_batch_train, y_batch_train, tax_id) in enumerate(train_DataLoader.data_gen(train_path_list)):
 
             train_loss, logits = compute_train_metrics(x_batch_train, y_batch_train, "train")
 
@@ -233,7 +235,7 @@ if __name__ == '__main__':
         # Iterate over the batches of the dataset and calculate validation loss
         logger.info("Validation phase running now for Epoch - {0}".format(epoch + 1))
         # for step, (x_batch_val, y_batch_val, tax_id) in tqdm(enumerate(val_dataset), total=num_validation_steps):
-        for step, (x_batch_val, y_batch_val, tax_id) in tqdm(enumerate(val_data_gen), total=num_validation_steps):
+        for step, (x_batch_val, y_batch_val, tax_id) in tqdm(enumerate(val_DataLoader.data_gen(val_path_list)), total=num_validation_steps):
             # tax_id = tax_id.numpy()
             # tax_id = [item.decode("utf-8") for item in tax_id]  # byte string (b'hello' to regular string 'hello')
 

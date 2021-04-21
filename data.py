@@ -10,7 +10,7 @@ from PIL import Image
 import binvox_rw
 
 from logger import logger_train, logger_test
-
+import config as cfg
 
 # ----------------------------------------------Define Dataset Reader and Generator----------------------------------- #
 
@@ -29,6 +29,7 @@ class DataLoader(object):
         self.voxel_filepath = voxel_filepath
         self.mode = mode.lower()
         self.batch_size = batch_size
+        self.restrict = restrict
         self.restriction_size = restriction_size
 
         # either all the functions can be called here or individually. But for individual call outside, mode and batch_size should be
@@ -36,11 +37,9 @@ class DataLoader(object):
         self.taxonomy_dict = self.read_taxonomy_JSON()
         if self.mode == "inference":
             self.path_list = [self.rendering_filepath, self.voxel_filepath]
-        elif self.mode == "train" or self.mode == "val":
-            if restrict:
-                self.path_list = self.get_xy_paths()[:self.restriction_size]
-            else:
-                self.path_list = self.get_xy_paths()
+        else:
+            self.path_list = self.get_xy_paths()
+    
         self.dataset_gen = self.data_gen(self.path_list)
         self.length = len(self.path_list)
 
@@ -95,7 +94,11 @@ class DataLoader(object):
         random.shuffle(self.path_list)  # in-place
 
         self.logger.info("Finished reading all the files")
-        return self.path_list
+
+        if self.restrict:
+          return self.path_list[:self.restriction_size]
+        else:
+          return self.path_list
 
     def data_gen(self, file_list):
         '''
@@ -103,8 +106,9 @@ class DataLoader(object):
         :param file_list: List of file paths\n
         :return: Generator object
         '''
-
-        if self.mode == "train" or self.mode == "val" or self.mode == "test":
+        print(len(file_list))
+        # if self.mode == "train" or self.mode == "val" or self.mode == "test":
+        if self.mode in ("train", "val", "test"):
             # Shuffle path list
             random.shuffle(file_list)  # in-place
 
@@ -148,3 +152,15 @@ class DataLoader(object):
             self.volume = self.volume.data.astype(np.float32)
 
             yield self.rendering_image, self.volume
+
+# tp = cfg.TAXONOMY_FILE_PATH
+# rp = cfg.RENDERING_PATH
+# vp = cfg.VOXEL_PATH
+# dl = DataLoader(tp, rp, vp, restrict=True, restriction_size=100)
+
+# fl = dl.path_list
+
+# for i in range(4):
+#   for a,b,c in dl.data_gen(fl):
+#     print(a.shape, b.shape, len(c))
+#     print("--------------------------------------------")
