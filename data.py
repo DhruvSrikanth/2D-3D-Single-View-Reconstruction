@@ -11,7 +11,6 @@ import binvox_rw
 
 from logger import logger_train, logger_test
 
-
 # ----------------------------------------------Define Dataset Reader and Generator----------------------------------- #
 
 class DataLoader(object):
@@ -23,12 +22,14 @@ class DataLoader(object):
     :param mode: model mode (train, test or val)\n
     :param batch_size: model input data batch size
     """
+
     def __init__(self, JSON_filepath, rendering_filepath, voxel_filepath, mode="train", batch_size=8, restrict=False, restriction_size=100):
         self.JSON_filepath = JSON_filepath
         self.rendering_filepath = rendering_filepath
         self.voxel_filepath = voxel_filepath
         self.mode = mode.lower()
         self.batch_size = batch_size
+        self.restrict = restrict
         self.restriction_size = restriction_size
 
         # either all the functions can be called here or individually. But for individual call outside, mode and batch_size should be
@@ -36,11 +37,9 @@ class DataLoader(object):
         self.taxonomy_dict = self.read_taxonomy_JSON()
         if self.mode == "inference":
             self.path_list = [self.rendering_filepath, self.voxel_filepath]
-        elif self.mode == "train" or self.mode == "val":
-            if restrict:
-                self.path_list = self.get_xy_paths()[:self.restriction_size]
-            else:
-                self.path_list = self.get_xy_paths()
+        else:
+            self.path_list = self.get_xy_paths()
+
         self.dataset_gen = self.data_gen(self.path_list)
         self.length = len(self.path_list)
 
@@ -95,7 +94,11 @@ class DataLoader(object):
         random.shuffle(self.path_list)  # in-place
 
         self.logger.info("Finished reading all the files")
-        return self.path_list
+
+        if self.restrict:
+            return self.path_list[:self.restriction_size]
+        else:
+            return self.path_list
 
     def data_gen(self, file_list):
         '''
@@ -103,8 +106,9 @@ class DataLoader(object):
         :param file_list: List of file paths\n
         :return: Generator object
         '''
-
-        if self.mode == "train" or self.mode == "val" or self.mode == "test":
+        print(len(file_list))
+        # if self.mode == "train" or self.mode == "val" or self.mode == "test":
+        if self.mode in ("train", "val", "test"):
             # Shuffle path list
             random.shuffle(file_list)  # in-place
 

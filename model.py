@@ -7,7 +7,7 @@ from tensorflow.keras.applications import VGG16, ResNet50, DenseNet121
 
 class Sampling(tf.keras.layers.Layer):
     """Uses (z_mean, z_log_var) to sample z, the vector encoding a digit."""
-
+    @tf.function
     def call(self, inputs):
         z_mean, z_log_var = inputs
         batch = tf.shape(z_mean)[0]
