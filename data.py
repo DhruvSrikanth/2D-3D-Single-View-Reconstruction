@@ -110,10 +110,9 @@ class DataLoader(object):
         # if self.mode == "train" or self.mode == "val" or self.mode == "test":
         if self.mode in ("train", "val", "test"):
             # Shuffle path list
-            random.shuffle(file_list)  # in-place
+            # random.shuffle(file_list)  # in-place
 
             self.l = len(file_list)
-            random.shuffle(file_list)
 
             for idx in range(0, self.l, self.batch_size):
                 self.img, self.vox, self.tax_id = [], [], []

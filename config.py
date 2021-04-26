@@ -49,7 +49,7 @@ VOXEL_PATH            = 'E:\\Datasets\\3D_Reconstruction\ShapeNetVox32\\{}\\{}\\
 # ----------------------------------------------Training Configuration------------------------------------------------ #
 
 input_shape = (224, 224, 3)  # input shape
-autoencoder_flavour = "variational" # Vanilla or Variational AutoEncoder
+autoencoder_flavour = "vanilla" # Vanilla or Variational AutoEncoder
 encoder_cnn = "vgg" # pre-trained encoder cnn (vgg, resnet or densenet)
 batch_size = 8  # batch size
 epochs = 10 #250 # Number of epochs

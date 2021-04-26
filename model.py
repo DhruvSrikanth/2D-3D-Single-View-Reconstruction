@@ -102,6 +102,12 @@ class Encoder(tf.keras.Model):
         elif self.ae_flavour == "vanilla":
             return layer12_elu
 
+    def summary(self):
+        dummy = tf.keras.Input(shape=(224, 224, 3), name = "Encoder Input")
+        enc_model = tf.keras.Model(inputs=[dummy], outputs=self.call(dummy))
+        enc_model._name  = "Encoder"
+        return enc_model.summary()
+
 class Decoder(tf.keras.Model):
 
     def __init__(self, ae_flavour="vanilla"):
@@ -112,7 +118,8 @@ class Decoder(tf.keras.Model):
 
         if self.ae_flavour == "variational":
             self.layer0 = tf.keras.layers.Dense(2*2*2*256, activation="relu")
-            self.layer0_reshape = tf.keras.layers.Reshape((2, 2, 2, 256))
+
+        self.layer0_reshape = tf.keras.layers.Reshape((2, 2, 2, 256))
 
         self.layer1 = tf.keras.layers.Convolution3DTranspose(filters=128, kernel_size=4, strides=(2, 2, 2),
                                                              padding="same", use_bias=False, name="Conv3D_1")
@@ -137,11 +144,10 @@ class Decoder(tf.keras.Model):
 
         if self.ae_flavour == "variational":
             layer0_out = self.layer0(inputs)
-            layer0_reshape_out = self.layer0_reshape(layer0_out)
-            layer1_in = layer0_reshape_out
+            layer1_in = self.layer0_reshape(layer0_out)
 
         elif self.ae_flavour == "vanilla":
-            layer1_in = inputs
+            layer1_in = self.layer0_reshape(inputs)
 
         layer1_out = self.layer1(layer1_in)
         layer1_norm_out = self.layer1_norm(layer1_out)
@@ -165,6 +171,12 @@ class Decoder(tf.keras.Model):
 
         return layer5_reshape_out
 
+    def summary(self):
+        dummy = tf.keras.Input(shape=(2, 2, 2, 256), name = "Decoder Input")
+        dec_model = tf.keras.Model(inputs=[dummy], outputs=self.call(dummy))
+        dec_model._name  = "Decoder"
+        return dec_model.summary()
+
 class AutoEncoder(tf.keras.Model):
   """Combines the encoder and decoder into an end-to-end model for training."""
 
@@ -177,7 +189,7 @@ class AutoEncoder(tf.keras.Model):
     self.encoder = Encoder(custom_input_shape=self.custom_input_shape, ae_flavour=self.ae_flavour, enc_net=self.enc_net, latent_dim=self.latent_dim)
     self.decoder = Decoder(ae_flavour=self.ae_flavour)
 
-  # @tf.function
+  @tf.function
   def compute_KL_loss(self, inputs):
     if self.ae_flavour == "variational":
         z_mean, z_log_var = inputs
@@ -189,12 +201,39 @@ class AutoEncoder(tf.keras.Model):
   def call(self, inputs, training=False):
     if self.ae_flavour == "variational":
         z_mean, z_log_var, z = self.encoder(inputs, training=training)
-        kl_loss = self.compute_KL_loss((z_mean, z_log_var))
     elif self.ae_flavour == "vanilla":
         z = self.encoder(inputs, training=training)
-        kl_loss = 0
+        z_mean, z_log_var = 0, 0
+
+    kl_loss = self.compute_KL_loss((z_mean, z_log_var))
+    self.add_loss(lambda: kl_loss)
 
     reconstructed = self.decoder(z)
     # Add KL divergence regularization loss.
-    self.add_loss(kl_loss)
     return reconstructed
+
+  def summary(self):
+      dummy = tf.keras.Input(shape=(224, 224, 3), name = "Input")
+      ae_model = tf.keras.Model(inputs=[dummy], outputs=self.call(dummy))
+      ae_model._name  = "V" + self.ae_flavour.lower()[1:] + "AutoEncoder"
+      return ae_model.summary()
+
+# ----------------------------------------------Test Model------------------------------------------------------------ #
+
+def get_model_summary(choice = 'ae'):
+    if choice == "enc":
+        encoder = Encoder(custom_input_shape=(224, 224, 3))
+        print(encoder.summary())
+    elif choice == "dec":
+        decoder = Decoder()
+        print(decoder.summary())
+    elif choice == "ae":
+        autoencoder_model = AutoEncoder(custom_input_shape=(-1, 224, 224, 3))
+        print(autoencoder_model.summary())
+    else:
+        print("Wrong Choice!")
+
+
+choice  = 'ae'
+# get_model_summary(choice)
+

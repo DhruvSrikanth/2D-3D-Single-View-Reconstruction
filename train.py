@@ -99,8 +99,10 @@ def compute_train_metrics(x, y, mode="train"):
         # Logits for this minibatch
         x_logits = autoencoder_model(x, training=True)
         # Compute the loss value for this minibatch.
-        loss = loss_fn(y, x_logits)
-        loss += sum(autoencoder_model.losses)
+        bce_loss = loss_fn(y, x_logits)
+        kl_loss = autoencoder_model.losses
+        # print(bce_loss, kl_loss)
+        loss = bce_loss + kl_loss
 
         if mode == "train":
             # Use the gradient tape to automatically retrieve the gradients of the trainable variables with respect to the loss.
@@ -153,7 +155,8 @@ if __name__ == '__main__':
         # autoencoder_model = tf.keras.models.load_model(latest_model, compile=False)
         autoencoder_model = model.AutoEncoder(custom_input_shape=tuple([-1] + list(input_shape)), ae_flavour=autoencoder_flavour, enc_net=encoder_cnn)
         temp_tensor = tf.zeros((8,224,224,3), dtype=tf.dtypes.float32)
-        reconstruction = autoencoder_model(temp_tensor)
+        loss_, reconstruction = autoencoder_model(temp_tensor)
+        del loss_
         del temp_tensor
         del reconstruction
         autoencoder_model.load_weights(latest_model)
