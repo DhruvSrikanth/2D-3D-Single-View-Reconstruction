@@ -188,6 +188,8 @@ class AutoEncoder(tf.keras.Model):
     self.latent_dim = latent_dim
     self.encoder = Encoder(custom_input_shape=self.custom_input_shape, ae_flavour=self.ae_flavour, enc_net=self.enc_net, latent_dim=self.latent_dim)
     self.decoder = Decoder(ae_flavour=self.ae_flavour)
+    self.bce_loss = 0
+    self.kl_loss = 0
 
   @tf.function
   def compute_KL_loss(self, inputs):
@@ -211,6 +213,38 @@ class AutoEncoder(tf.keras.Model):
     reconstructed = self.decoder(z)
     # Add KL divergence regularization loss.
     return reconstructed
+
+
+
+  # Optimizer
+  opt = tf.keras.optimizers.Adam()
+
+  @tf.function
+  def compute_train_metrics(x, y, mode="train"):
+      '''
+      Compute training metrics for custom training loop.\n
+      :param x: input to model\n
+      :param y: output from model\n
+      :return: training metrics i.e loss
+      '''
+      # Open a GradientTape to record the operations run during the forward pass, which enables auto-differentiation.
+      with tf.GradientTape() as tape:
+          # Run the forward pass of the layer. The operations that the layer applies to its inputs are going to be recorded on the GradientTape.
+          # Logits for this minibatch
+          x_logits = model(x, training=True)
+          # Compute the loss value for this minibatch.
+          self.bce_loss = self.loss_fn(y, x_logits)
+          self.kl_loss = autoencoder_model.losses
+          # print(bce_loss, kl_loss)
+          loss = bce_loss + kl_loss
+
+          if mode == "train":
+              # Use the gradient tape to automatically retrieve the gradients of the trainable variables with respect to the loss.
+              grads = tape.gradient(loss, autoencoder_model.trainable_weights)
+              # Run one step of gradient descent by updating the value of the variables to minimize the loss.
+              opt.apply_gradients(zip(grads, autoencoder_model.trainable_weights))
+
+      return loss, x_logits
 
   def summary(self):
       dummy = tf.keras.Input(shape=(224, 224, 3), name = "Input")
