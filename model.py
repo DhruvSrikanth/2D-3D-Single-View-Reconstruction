@@ -180,7 +180,8 @@ class Decoder(tf.keras.Model):
 class AutoEncoder(tf.keras.Model):
   """Combines the encoder and decoder into an end-to-end model for training."""
 
-  def __init__(self, custom_input_shape=(-1, 224, 224, 3), ae_flavour="vanilla", enc_net="vgg", latent_dim=128):
+  def __init__(self, custom_input_shape=(-1, 224, 224, 3), ae_flavour="vanilla", enc_net="vgg", latent_dim=128,
+               loss_fn = tf.keras.losses.BinaryCrossentropy(from_logits=True), optimizer = tf.keras.optimizers.Adam()):
     super(AutoEncoder, self).__init__(name = "V" + ae_flavour.lower()[1:] + "AutoEncoder")
     self.custom_input_shape = custom_input_shape[1:]
     self.ae_flavour = ae_flavour.lower()
@@ -190,6 +191,11 @@ class AutoEncoder(tf.keras.Model):
     self.decoder = Decoder(ae_flavour=self.ae_flavour)
     self.bce_loss = 0
     self.kl_loss = 0
+    self.total_loss = 0
+    # Loss
+    self.loss_fn = loss_fn
+    # Optimizer
+    self.opt = optimizer
 
   @tf.function
   def compute_KL_loss(self, inputs):
@@ -214,37 +220,33 @@ class AutoEncoder(tf.keras.Model):
     # Add KL divergence regularization loss.
     return reconstructed
 
-
-
-  # Optimizer
-  opt = tf.keras.optimizers.Adam()
-
   @tf.function
-  def compute_train_metrics(x, y, mode="train"):
+  def compute_train_metrics(self, inputs):
       '''
       Compute training metrics for custom training loop.\n
       :param x: input to model\n
       :param y: output from model\n
       :return: training metrics i.e loss
       '''
+      x, y, mode = inputs
       # Open a GradientTape to record the operations run during the forward pass, which enables auto-differentiation.
       with tf.GradientTape() as tape:
           # Run the forward pass of the layer. The operations that the layer applies to its inputs are going to be recorded on the GradientTape.
           # Logits for this minibatch
-          x_logits = model(x, training=True)
+          reconstructed = self.call(x, training=True)
           # Compute the loss value for this minibatch.
-          self.bce_loss = self.loss_fn(y, x_logits)
-          self.kl_loss = autoencoder_model.losses
+          bce_loss = self.loss_fn(y, reconstructed)
+          kl_loss = self.kl_loss
           # print(bce_loss, kl_loss)
-          loss = bce_loss + kl_loss
+          self.total_loss = bce_loss + kl_loss
 
           if mode == "train":
               # Use the gradient tape to automatically retrieve the gradients of the trainable variables with respect to the loss.
-              grads = tape.gradient(loss, autoencoder_model.trainable_weights)
+              grads = tape.gradient(self.total_loss, self.trainable_weights)
               # Run one step of gradient descent by updating the value of the variables to minimize the loss.
-              opt.apply_gradients(zip(grads, autoencoder_model.trainable_weights))
+              self.opt.apply_gradients(zip(grads, self.trainable_weights))
 
-      return loss, x_logits
+      return self.total_loss, reconstructed
 
   def summary(self):
       dummy = tf.keras.Input(shape=(224, 224, 3), name = "Input")

@@ -77,45 +77,10 @@ logger.info("Input Shape -> {0}\n Batch Size -> {1}\n Epochs -> {2}\n Learning R
 
 logger.info("AutoEncoder Flavour -> {0}\n Encoder Block Type -> {1}\n ".format(autoencoder_flavour, encoder_cnn))
 
-# -----------------------------Define Loss, Optimizer & Compute Metrics Function-------------------------------------- #
-
-# Loss
-loss_fn = tf.keras.losses.BinaryCrossentropy(from_logits=True)
-
-# Optimizer
-opt = tf.keras.optimizers.Adam()
-
-# @tf.function
-def compute_train_metrics(x, y, mode="train"):
-    '''
-    Compute training metrics for custom training loop.\n
-    :param x: input to model\n
-    :param y: output from model\n
-    :return: training metrics i.e loss
-    '''
-    # Open a GradientTape to record the operations run during the forward pass, which enables auto-differentiation.
-    with tf.GradientTape() as tape:
-        # Run the forward pass of the layer. The operations that the layer applies to its inputs are going to be recorded on the GradientTape.
-        # Logits for this minibatch
-        x_logits = autoencoder_model(x, training=True)
-        # Compute the loss value for this minibatch.
-        bce_loss = loss_fn(y, x_logits)
-        kl_loss = autoencoder_model.losses
-        # print(bce_loss, kl_loss)
-        loss = bce_loss + kl_loss
-
-        if mode == "train":
-            # Use the gradient tape to automatically retrieve the gradients of the trainable variables with respect to the loss.
-            grads = tape.gradient(loss, autoencoder_model.trainable_weights)
-            # Run one step of gradient descent by updating the value of the variables to minimize the loss.
-            opt.apply_gradients(zip(grads, autoencoder_model.trainable_weights))
-
-    return loss, x_logits
-
 # ----------------------------------------------Run Main Code--------------------------------------------------------- #
 
-restrict_dataset = True
-restriction_size = 50
+restrict_dataset = cfg.restrict_dataset
+restriction_size = cfg.restriction_size
 
 if __name__ == '__main__':
 
@@ -152,13 +117,10 @@ if __name__ == '__main__':
         logger.info("Starting Training phase")
     else:
         latest_model = os.path.join(checkpoint_path, saved_model_files[-1])
-        # autoencoder_model = tf.keras.models.load_model(latest_model, compile=False)
         autoencoder_model = model.AutoEncoder(custom_input_shape=tuple([-1] + list(input_shape)), ae_flavour=autoencoder_flavour, enc_net=encoder_cnn)
         temp_tensor = tf.zeros((8,224,224,3), dtype=tf.dtypes.float32)
         loss_, reconstruction = autoencoder_model(temp_tensor)
-        del loss_
-        del temp_tensor
-        del reconstruction
+        del loss_, temp_tensor, reconstruction
         autoencoder_model.load_weights(latest_model)
         resume_epoch = int(latest_model.split("_")[-1].split(".")[0])
         logger.info("Resuming Training on Epoch -> {0}".format(resume_epoch + 1))
@@ -202,7 +164,7 @@ if __name__ == '__main__':
 
         # Iterate over the batches of the dataset.
         for step, (x_batch_train, y_batch_train, tax_id) in enumerate(train_DataLoader.data_gen(train_path_list)):
-            train_loss, logits = compute_train_metrics(x_batch_train, y_batch_train, "train")
+            train_loss, logits = autoencoder_model.compute_train_metrics((x_batch_train, y_batch_train, "train"))
             iou = metr.calc_iou_loss(y_batch_train, logits)
             iou_dict = metr.iou_dict_update(tax_id, iou_dict, iou)
             mean_iou_train = metr.calc_mean_iou(iou_dict, mean_iou_train)
@@ -229,7 +191,7 @@ if __name__ == '__main__':
         logger.info("Validation phase running now for Epoch - {0}".format(epoch + 1))
         # for step, (x_batch_val, y_batch_val, tax_id) in tqdm(enumerate(val_dataset), total=num_validation_steps):
         for step, (x_batch_val, y_batch_val, tax_id) in tqdm(enumerate(val_DataLoader.data_gen(val_path_list)), total=num_validation_steps):
-            val_loss, logits = compute_train_metrics(x_batch_val, y_batch_val, "val")
+            val_loss, logits = autoencoder_model.compute_train_metrics((x_batch_val, y_batch_val, "val"))
             iou = metr.calc_iou_loss(y_batch_val, logits)
             # IoU dict update moved to iou_dict_update function
             iou_dict = metr.iou_dict_update(tax_id, iou_dict, iou)
