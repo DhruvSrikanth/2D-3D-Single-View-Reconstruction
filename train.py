@@ -85,7 +85,7 @@ loss_fn = tf.keras.losses.BinaryCrossentropy(from_logits=True)
 # Optimizer
 opt = tf.keras.optimizers.Adam()
 
-@tf.function
+# @tf.function
 def compute_train_metrics(x, y, mode="train"):
     '''
     Compute training metrics for custom training loop.\n
@@ -202,7 +202,6 @@ if __name__ == '__main__':
 
         # Iterate over the batches of the dataset.
         for step, (x_batch_train, y_batch_train, tax_id) in enumerate(train_DataLoader.data_gen(train_path_list)):
-            # print('xxxxxxxxxxxxxxxxx')
             train_loss, logits = compute_train_metrics(x_batch_train, y_batch_train, "train")
             iou = metr.calc_iou_loss(y_batch_train, logits)
             iou_dict = metr.iou_dict_update(tax_id, iou_dict, iou)
