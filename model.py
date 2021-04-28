@@ -7,7 +7,7 @@ from tensorflow.keras.applications import VGG16, ResNet50, DenseNet121
 
 class Sampling(tf.keras.layers.Layer):
     """Uses (z_mean, z_log_var) to sample z, the vector encoding a digit."""
-    @tf.function
+    @tf.function(experimental_compile=True)
     def call(self, inputs):
         z_mean, z_log_var = inputs
         batch = tf.shape(z_mean)[0]
@@ -195,9 +195,9 @@ class AutoEncoder(tf.keras.Model):
     # Loss
     self.loss_fn = loss_fn
     # Optimizer
-    self.opt = optimizer
+    self.opt = tf.keras.mixed_precision.LossScaleOptimizer(optimizer)
 
-  @tf.function
+  @tf.function(experimental_compile=True)
   def compute_KL_loss(self, inputs):
     if self.ae_flavour == "variational":
         z_mean, z_log_var = inputs
@@ -213,14 +213,14 @@ class AutoEncoder(tf.keras.Model):
         z = self.encoder(inputs, training=training)
         z_mean, z_log_var = 0, 0
 
-    kl_loss = self.compute_KL_loss((z_mean, z_log_var))
-    self.add_loss(lambda: kl_loss)
+    self.kl_loss = self.compute_KL_loss((z_mean, z_log_var))
+    self.add_loss(lambda: self.kl_loss)
 
     reconstructed = self.decoder(z)
     # Add KL divergence regularization loss.
     return reconstructed
 
-  @tf.function
+  @tf.function(experimental_compile=True)
   def compute_train_metrics(self, inputs):
       '''
       Compute training metrics for custom training loop.\n
@@ -236,15 +236,16 @@ class AutoEncoder(tf.keras.Model):
           reconstructed = self.call(x, training=True)
           # Compute the loss value for this minibatch.
           bce_loss = self.loss_fn(y, reconstructed)
-          kl_loss = self.kl_loss
-          # print(bce_loss, kl_loss)
-          self.total_loss = bce_loss + kl_loss
-
+          self.bce_loss = tf.reduce_mean(bce_loss)
+          self.kl_loss = self.losses
+          self.total_loss = tf.reduce_mean(self.bce_loss + self.kl_loss)
+          scaled_loss = self.opt.get_scaled_loss(self.total_loss)
           if mode == "train":
               # Use the gradient tape to automatically retrieve the gradients of the trainable variables with respect to the loss.
-              grads = tape.gradient(self.total_loss, self.trainable_weights)
+              scaled_gradients = tape.gradient(scaled_loss, self.trainable_variables)
+              gradients = self.opt.get_unscaled_gradients(scaled_gradients)
               # Run one step of gradient descent by updating the value of the variables to minimize the loss.
-              self.opt.apply_gradients(zip(grads, self.trainable_weights))
+              self.opt.apply_gradients(zip(gradients, self.trainable_variables))
 
       return self.total_loss, reconstructed
 

@@ -106,11 +106,11 @@ class DataLoader(object):
         :param file_list: List of file paths\n
         :return: Generator object
         '''
-        print(len(file_list))
+        # print(len(file_list))
         # if self.mode == "train" or self.mode == "val" or self.mode == "test":
         if self.mode in ("train", "val", "test"):
             # Shuffle path list
-            # random.shuffle(file_list)  # in-place
+            random.shuffle(file_list)  # in-place
 
             self.l = len(file_list)
 

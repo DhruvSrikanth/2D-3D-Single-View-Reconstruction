@@ -20,6 +20,10 @@ import utils
 
 os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 os.environ['TF_FORCE_GPU_ALLOW_GROWTH'] = 'true'
+# Mixed precision optimization
+tf.keras.mixed_precision.set_global_policy('mixed_float16')
+#Auto-clustering
+os.environ["TF_XLA_FLAGS"] = "--tf_xla_auto_jit=2 E:\Projects\3D_Reconstruction\src\train.py"
 # tf.debugging.set_log_device_placement(True)
 
 # the following 2 commands are used to suppress some tf warning messages
@@ -179,7 +183,6 @@ if __name__ == '__main__':
         # Save training IoU values in CSV file
         utils.record_iou_data(1, epoch + 1, mean_iou_train)
 
-        # TODO: Training and Validation Loss -> 1 graph, Training and Validation IOU (mean IOU over all classes)
         with train_summary_writer.as_default():
             tf.summary.scalar('train_loss', train_loss, step=epoch)
             tf.summary.scalar('overall_train_iou', allClass_mean_iou, step=epoch)
