@@ -7,7 +7,7 @@ from tensorflow.keras.applications import VGG16, ResNet50, DenseNet121
 
 class Sampling(tf.keras.layers.Layer):
     """Uses (z_mean, z_log_var) to sample z, the vector encoding a digit."""
-
+    @tf.function(experimental_compile=True)
     def call(self, inputs):
         z_mean, z_log_var = inputs
         batch = tf.shape(z_mean)[0]
@@ -102,6 +102,12 @@ class Encoder(tf.keras.Model):
         elif self.ae_flavour == "vanilla":
             return layer12_elu
 
+    def summary(self):
+        dummy = tf.keras.Input(shape=(224, 224, 3), name = "Encoder Input")
+        enc_model = tf.keras.Model(inputs=[dummy], outputs=self.call(dummy))
+        enc_model._name  = "Encoder"
+        return enc_model.summary()
+
 class Decoder(tf.keras.Model):
 
     def __init__(self, ae_flavour="vanilla"):
@@ -112,7 +118,8 @@ class Decoder(tf.keras.Model):
 
         if self.ae_flavour == "variational":
             self.layer0 = tf.keras.layers.Dense(2*2*2*256, activation="relu")
-            self.layer0_reshape = tf.keras.layers.Reshape((2, 2, 2, 256))
+
+        self.layer0_reshape = tf.keras.layers.Reshape((2, 2, 2, 256))
 
         self.layer1 = tf.keras.layers.Convolution3DTranspose(filters=128, kernel_size=4, strides=(2, 2, 2),
                                                              padding="same", use_bias=False, name="Conv3D_1")
@@ -137,11 +144,10 @@ class Decoder(tf.keras.Model):
 
         if self.ae_flavour == "variational":
             layer0_out = self.layer0(inputs)
-            layer0_reshape_out = self.layer0_reshape(layer0_out)
-            layer1_in = layer0_reshape_out
+            layer1_in = self.layer0_reshape(layer0_out)
 
         elif self.ae_flavour == "vanilla":
-            layer1_in = inputs
+            layer1_in = self.layer0_reshape(inputs)
 
         layer1_out = self.layer1(layer1_in)
         layer1_norm_out = self.layer1_norm(layer1_out)
@@ -165,10 +171,17 @@ class Decoder(tf.keras.Model):
 
         return layer5_reshape_out
 
+    def summary(self):
+        dummy = tf.keras.Input(shape=(2, 2, 2, 256), name = "Decoder Input")
+        dec_model = tf.keras.Model(inputs=[dummy], outputs=self.call(dummy))
+        dec_model._name  = "Decoder"
+        return dec_model.summary()
+
 class AutoEncoder(tf.keras.Model):
   """Combines the encoder and decoder into an end-to-end model for training."""
 
-  def __init__(self, custom_input_shape=(-1, 224, 224, 3), ae_flavour="vanilla", enc_net="vgg", latent_dim=128):
+  def __init__(self, custom_input_shape=(-1, 224, 224, 3), ae_flavour="vanilla", enc_net="vgg", latent_dim=128,
+               loss_fn = tf.keras.losses.BinaryCrossentropy(from_logits=True), optimizer = tf.keras.optimizers.Adam()):
     super(AutoEncoder, self).__init__(name = "V" + ae_flavour.lower()[1:] + "AutoEncoder")
     self.custom_input_shape = custom_input_shape[1:]
     self.ae_flavour = ae_flavour.lower()
@@ -176,8 +189,15 @@ class AutoEncoder(tf.keras.Model):
     self.latent_dim = latent_dim
     self.encoder = Encoder(custom_input_shape=self.custom_input_shape, ae_flavour=self.ae_flavour, enc_net=self.enc_net, latent_dim=self.latent_dim)
     self.decoder = Decoder(ae_flavour=self.ae_flavour)
+    self.bce_loss = 0
+    self.kl_loss = 0
+    self.total_loss = 0
+    # Loss
+    self.loss_fn = loss_fn
+    # Optimizer
+    self.opt = tf.keras.mixed_precision.LossScaleOptimizer(optimizer)
 
-  # @tf.function
+  @tf.function(experimental_compile=True)
   def compute_KL_loss(self, inputs):
     if self.ae_flavour == "variational":
         z_mean, z_log_var = inputs
@@ -189,12 +209,68 @@ class AutoEncoder(tf.keras.Model):
   def call(self, inputs, training=False):
     if self.ae_flavour == "variational":
         z_mean, z_log_var, z = self.encoder(inputs, training=training)
-        kl_loss = self.compute_KL_loss((z_mean, z_log_var))
     elif self.ae_flavour == "vanilla":
         z = self.encoder(inputs, training=training)
-        kl_loss = 0
+        z_mean, z_log_var = 0, 0
+
+    self.kl_loss = self.compute_KL_loss((z_mean, z_log_var))
+    self.add_loss(lambda: self.kl_loss)
 
     reconstructed = self.decoder(z)
     # Add KL divergence regularization loss.
-    self.add_loss(kl_loss)
     return reconstructed
+
+  @tf.function(experimental_compile=True)
+  def compute_train_metrics(self, inputs):
+      '''
+      Compute training metrics for custom training loop.\n
+      :param x: input to model\n
+      :param y: output from model\n
+      :return: training metrics i.e loss
+      '''
+      x, y, mode = inputs
+      # Open a GradientTape to record the operations run during the forward pass, which enables auto-differentiation.
+      with tf.GradientTape() as tape:
+          # Run the forward pass of the layer. The operations that the layer applies to its inputs are going to be recorded on the GradientTape.
+          # Logits for this minibatch
+          reconstructed = self.call(x, training=True)
+          # Compute the loss value for this minibatch.
+          bce_loss = self.loss_fn(y, reconstructed)
+          self.bce_loss = tf.reduce_mean(bce_loss)
+          self.kl_loss = self.losses
+          self.total_loss = tf.reduce_mean(self.bce_loss + self.kl_loss)
+          scaled_loss = self.opt.get_scaled_loss(self.total_loss)
+          if mode == "train":
+              # Use the gradient tape to automatically retrieve the gradients of the trainable variables with respect to the loss.
+              scaled_gradients = tape.gradient(scaled_loss, self.trainable_variables)
+              gradients = self.opt.get_unscaled_gradients(scaled_gradients)
+              # Run one step of gradient descent by updating the value of the variables to minimize the loss.
+              self.opt.apply_gradients(zip(gradients, self.trainable_variables))
+
+      return self.total_loss, reconstructed
+
+  def summary(self):
+      dummy = tf.keras.Input(shape=(224, 224, 3), name = "Input")
+      ae_model = tf.keras.Model(inputs=[dummy], outputs=self.call(dummy))
+      ae_model._name  = "V" + self.ae_flavour.lower()[1:] + "AutoEncoder"
+      return ae_model.summary()
+
+# ----------------------------------------------Test Model------------------------------------------------------------ #
+
+def get_model_summary(choice = 'ae'):
+    if choice == "enc":
+        encoder = Encoder(custom_input_shape=(224, 224, 3))
+        print(encoder.summary())
+    elif choice == "dec":
+        decoder = Decoder()
+        print(decoder.summary())
+    elif choice == "ae":
+        autoencoder_model = AutoEncoder(custom_input_shape=(-1, 224, 224, 3))
+        print(autoencoder_model.summary())
+    else:
+        print("Wrong Choice!")
+
+
+choice  = 'ae'
+# get_model_summary(choice)
+

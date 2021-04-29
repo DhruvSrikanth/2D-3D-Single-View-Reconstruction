@@ -12,6 +12,7 @@ from tqdm import tqdm
 import config as cfg
 from logger import logger_test
 import data
+import model
 import metrics as metr
 import utils
 
@@ -87,7 +88,7 @@ if __name__ == '__main__':
 
     # Read Data
     test_DataLoader = data.DataLoader(TAXONOMY_FILE_PATH, RENDERING_PATH, VOXEL_PATH, batch_size=batch_size, mode="train")
-    test_data_gen = test_DataLoader.dataset_gen
+    test_path_list = test_DataLoader.path_list
     # Load Model for Testing phase
     # Check if model save path exists
     if not os.path.isdir(checkpoint_path):
@@ -104,8 +105,12 @@ if __name__ == '__main__':
 
     saved_model_files = glob.glob(checkpoint_path + "\*.h5")
     latest_model = os.path.join(checkpoint_path, saved_model_files[-1])
-    autoencoder_model = tf.keras.models.load_model(latest_model, compile=False)
-    print(autoencoder_model.summary())
+    autoencoder_model = model.AutoEncoder(custom_input_shape=tuple([-1] + list(input_shape)), ae_flavour="variational", enc_net="vgg")
+    temp_tensor = tf.zeros((8, 224, 224, 3), dtype=tf.dtypes.float32)
+    reconstruction = autoencoder_model(temp_tensor)
+    del temp_tensor
+    del reconstruction
+    autoencoder_model.load_weights(latest_model)
     
     logger.info("Loading Model from -> {0}".format(latest_model))
 
@@ -128,7 +133,7 @@ if __name__ == '__main__':
     iou_dict = dict()
 
     logger.info("Testing phase running now")
-    for step, (x_batch_test, y_batch_test, tax_id) in tqdm(enumerate(test_data_gen), total=num_test_steps):
+    for step, (x_batch_test, y_batch_test, tax_id) in tqdm(enumerate(test_DataLoader.data_gen(test_DataLoader)), total=num_test_steps):
         tax_id = tax_id.numpy()
         tax_id = [item.decode("utf-8") for item in tax_id] # byte string (b'hello' to regular string 'hello')
 
