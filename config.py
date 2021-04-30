@@ -59,4 +59,4 @@ model_save_frequency = 1 #10 # Save model every n epochs (specify n)
 checkpoint_path = os.path.join(os.getcwd(), 'saved_models') # Model save path
 
 restrict_dataset = True
-restriction_size = 100
+restriction_size = 10

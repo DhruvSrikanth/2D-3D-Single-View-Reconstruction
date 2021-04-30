@@ -93,7 +93,7 @@ logger.info("\nAutoEncoder Flavour -> {0}\n Encoder Block Type -> {1}\n ".format
 
 class Sampling(tf.keras.layers.Layer):
     """Uses (z_mean, z_log_var) to sample z, the vector encoding a digit."""
-    @tf.function(experimental_compile=True)
+    @tf.function#(experimental_compile=True)
     def call(self, inputs):
         z_mean, z_log_var = inputs
         batch = tf.shape(z_mean)[0]
@@ -272,6 +272,7 @@ class Decoder(tf.keras.Model):
         dec_model = self.build_graph()
         return dec_model.summary()
 
+@tf.keras.utils.register_keras_serializable()
 class AutoEncoder(tf.keras.Model):
   """Combines the encoder and decoder into an end-to-end model for training."""
   def __init__(self, custom_input_shape=(-1, 224, 224, 3), ae_flavour="vanilla", enc_net="vgg", latent_dim=128):
@@ -287,7 +288,7 @@ class AutoEncoder(tf.keras.Model):
     self.kl_loss = 0
     self.total_loss = 0
 
-  @tf.function(experimental_compile=True)
+  @tf.function#(experimental_compile=True)
   def compute_KL_loss(self, inputs):
     if self.ae_flavour == "variational":
         z_mean, z_log_var = inputs
@@ -297,17 +298,18 @@ class AutoEncoder(tf.keras.Model):
     return kl_loss
 
   def call(self, inputs, training=False):
-    if self.ae_flavour == "variational":
-        z_mean, z_log_var, z = self.encoder(inputs, training=training)
-    elif self.ae_flavour == "vanilla":
-        z = self.encoder(inputs, training=training)
-        z_mean, z_log_var = 0, 0
+      if self.ae_flavour == "variational":
+          z_mean, z_log_var, z = self.encoder(inputs, training=training)
+      elif self.ae_flavour == "vanilla":
+          z = self.encoder(inputs, training=training)
+          z_mean, z_log_var = 0, 0
 
-    self.kl_loss = self.compute_KL_loss((z_mean, z_log_var))
+      # Add KL divergence regularization loss.
+      self.kl_loss = self.compute_KL_loss((z_mean, z_log_var))
+      self.add_loss(self.kl_loss)
+      reconstructed = self.decoder(z)
 
-    reconstructed = self.decoder(z)
-    # Add KL divergence regularization loss.
-    return reconstructed
+      return reconstructed
 
   def build_graph(self):
       dummy = tf.keras.Input(shape=(224, 224, 3), name = "Input")
@@ -345,7 +347,7 @@ loss_fn = tf.keras.losses.BinaryCrossentropy(from_logits=True)
 optimizer = tf.keras.optimizers.Adam()
 opt = tf.keras.mixed_precision.LossScaleOptimizer(optimizer)
 
-@tf.function(experimental_compile=True)
+@tf.function#(experimental_compile=True)
 def compute_train_metrics(inputs):
     '''
     Compute training metrics for custom training loop.\n
@@ -363,7 +365,7 @@ def compute_train_metrics(inputs):
         bce_loss = loss_fn(y, reconstructed)
         bce_loss = tf.reduce_mean(bce_loss)
         if "variational" in autoencoder_model.name.lower():
-            kl_loss = autoencoder_model.kl_loss
+            kl_loss = autoencoder_model.losses[0]
         else:
             kl_loss = 0
         total_loss = tf.reduce_mean(bce_loss + kl_loss)
@@ -413,10 +415,11 @@ if __name__ == "__main__":
         logger.info("Starting Training phase")
     else:
         latest_model = os.path.join(checkpoint_path, saved_model_files[-1])
+        logger.info("Loading Model from -> {0}".format(latest_model))
         autoencoder_model = tf.keras.models.load_model(latest_model, compile=False)
+        logger.info("Loaded Model from -> {0}".format(latest_model))
         resume_epoch = int(latest_model.split("_")[-1].split("-")[0])
         logger.info("Resuming Training on Epoch -> {0}".format(resume_epoch + 1))
-        logger.info("Loading Model from -> {0}".format(latest_model))
 
     values = [learning_rate, learning_rate * 0.5]
     learning_rate_fn = tf.keras.optimizers.schedules.PiecewiseConstantDecay(boundaries, values)
