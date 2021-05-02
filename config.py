@@ -11,9 +11,9 @@ import os
 
 # Dhruv
 # Training
-TAXONOMY_FILE_PATH    = 'E:\\Projects\\3D_Reconstruction\\src\\ShapeNet_mid_2_other.json'
-RENDERING_PATH        = 'E:\\Datasets\\3D_Reconstruction\ShapeNetRendering\\{}\\{}\\rendering'
-VOXEL_PATH            = 'E:\\Datasets\\3D_Reconstruction\ShapeNetVox32\\{}\\{}\\model.binvox'
+# TAXONOMY_FILE_PATH    = 'E:\\Projects\\3D_Reconstruction\\src\\ShapeNet_mid_2_other.json'
+# RENDERING_PATH        = 'E:\\Datasets\\3D_Reconstruction\ShapeNetRendering\\{}\\{}\\rendering'
+# VOXEL_PATH            = 'E:\\Datasets\\3D_Reconstruction\ShapeNetVox32\\{}\\{}\\model.binvox'
 # Inference
 # RENDERING_PATH      = os.path.join('E:\\Datasets\\3D_Reconstruction\Inference\Rendered Image', os.listdir('E:\\Datasets\\3D_Reconstruction\Inference\Rendered Image')[0])
 # GROUND_TRUTH_PATH   = os.path.join('E:\\Datasets\\3D_Reconstruction\Inference\Ground Truth', os.listdir('E:\\Datasets\\3D_Reconstruction\Inference\Ground Truth')[0])
@@ -41,9 +41,9 @@ VOXEL_PATH            = 'E:\\Datasets\\3D_Reconstruction\ShapeNetVox32\\{}\\{}\\
 # VOXEL_SAVE_PATH       = ""
 
 # VM
-# TAXONOMY_FILE_PATH      = '/home/drs/3D_Project/src/ShapeNet_original.json'
-# RENDERING_PATH          = '/home/drs/3D_Project/datasets/ShapeNet/ShapeNetRendering/{}/{}/rendering'
-# VOXEL_PATH              = '/home/drs/3D_Project/datasets/ShapeNet/ShapeNetVox32/{}/{}/model.binvox'
+TAXONOMY_FILE_PATH      = '/home/drs/3D_Project/src/ShapeNet_original.json'
+RENDERING_PATH          = '/home/drs/3D_Project/datasets/ShapeNet/ShapeNetRendering/{}/{}/rendering'
+VOXEL_PATH              = '/home/drs/3D_Project/datasets/ShapeNet/ShapeNetVox32/{}/{}/model.binvox'
 
 
 # ----------------------------------------------Training Configuration------------------------------------------------ #
@@ -51,12 +51,12 @@ VOXEL_PATH            = 'E:\\Datasets\\3D_Reconstruction\ShapeNetVox32\\{}\\{}\\
 input_shape = (224, 224, 3)  # input shape
 autoencoder_flavour = "variational" # Vanilla or Variational AutoEncoder
 encoder_cnn = "densenet" # pre-trained encoder cnn (vgg, resnet or densenet)
-batch_size = 2  # batch size
-epochs = 1 #250 # Number of epochs
+batch_size = 32  # batch size
+epochs = 150 #250 # Number of epochs
 learning_rate = 0.001 # Learning rate
 boundaries = [150] # Boundary epoch for learning rate scheduler
-model_save_frequency = 1 #10 # Save model every n epochs (specify n)
+model_save_frequency = 5 #10 # Save model every n epochs (specify n)
 checkpoint_path = os.path.join(os.getcwd(), 'saved_models') # Model save path
 
-restrict_dataset = True
-restriction_size = 10
+restrict_dataset = False
+restriction_size = 1000
