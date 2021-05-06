@@ -113,23 +113,26 @@ if __name__ == '__main__':
 
     # logger.info("Testing phase running now")
     for x_test, y_test in inference_data_gen:
-        x_test = tf.reshape(tensor = x_test, shape = (-1, 224, 224, 3))
-        y_test = tf.reshape(tensor=y_test, shape=(-1, 32, 32, 32))
 
-        test_loss, logits = compute_train_metrics(x_test, y_test)
-        iou = metr.calc_iou_loss(y_test, logits)
-        iou_val = iou[0]
+        print(x_test.shape, y_test.shape)
 
-    logger.info("Inference loss -> {0}".format(test_loss))
-    logger.info("Inference IoU -> {0}".format(iou_val))
+        # x_test = tf.reshape(tensor = x_test, shape = (-1, 224, 224, 3))
+        # y_test = tf.reshape(tensor = y_test, shape= (-1, 32, 32, 32))
+        #
+        # test_loss, logits = compute_train_metrics(x_test, y_test)
+        # iou = metr.calc_iou_loss(y_test, logits)
+        # iou_val = iou[0]
 
-    # Save Voxel Model
-    gv_ = logits.numpy()
-    gv = np.squeeze(gv_)
-    voxel_model_save_fp = VOXEL_SAVE_PATH + '\\voxel_model.binvox'
-    sample_path = 'E:\\Datasets\\3D_Reconstruction\\Inference\\Ground Truth\\model.binvox'
-    bin_rw.np_binvox(gv, voxel_model_save_fp, sample_path)
-
-    # returned_image = bin_viz.get_volume_views(gv, VOXEL_SAVE_PATH)
-
-    logger.info("End of program execution")
+    # logger.info("Inference loss -> {0}".format(test_loss))
+    # logger.info("Inference IoU -> {0}".format(iou_val))
+    #
+    # # Save Voxel Model
+    # gv_ = logits.numpy()
+    # gv = np.squeeze(gv_)
+    # voxel_model_save_fp = VOXEL_SAVE_PATH + '\\voxel_model.binvox'
+    # sample_path = 'E:\\Datasets\\3D_Reconstruction\\Inference\\Ground Truth\\model.binvox'
+    # bin_rw.np_binvox(gv, voxel_model_save_fp, sample_path)
+    #
+    # # returned_image = bin_viz.get_volume_views(gv, VOXEL_SAVE_PATH)
+    #
+    # logger.info("End of program execution")

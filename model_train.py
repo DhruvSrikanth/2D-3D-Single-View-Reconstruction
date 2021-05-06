@@ -76,6 +76,7 @@ boundaries = cfg.boundaries
 model_save_frequency = args.model_save_frequency
 checkpoint_path = args.checkpoint_path
 autoencoder_flavour = args.ae_flavour
+latent_dim = cfg.latent_dim
 
 # ----------------------------------------------Set Logger------------------------------------------------------------ #
 
@@ -87,7 +88,7 @@ logger.info("\nInput Shape -> {0}\n Batch Size -> {1}\n Epochs -> {2}\n Learning
 
 # -------------------------------------------Print Model Params------------------------------------------------------- #
 
-logger.info("\nAutoEncoder Flavour -> {0}\n Encoder Block Type -> {1}\n ".format(autoencoder_flavour, encoder_cnn))
+logger.info("\nAutoEncoder Flavour -> {0}\n Encoder Block Type -> {1}\n Latent Dimension -> {2}\n ".format(autoencoder_flavour, encoder_cnn, latent_dim))
 
 # ----------------------------------------------Define Sampling For Latent Space-------------------------------------- #
 
@@ -105,7 +106,7 @@ class Sampling(tf.keras.layers.Layer):
 
 class Encoder(tf.keras.Model):
 
-    def __init__(self, custom_input_shape=(224, 224, 3), ae_flavour="vanilla", enc_net="vgg", latent_dim=128):
+    def __init__(self, custom_input_shape=(224, 224, 3), ae_flavour="vanilla", enc_net="vgg", latent_dim=16):
         super(Encoder, self).__init__(name="Encoder")
         # Variables
         self.custom_input_shape = custom_input_shape
@@ -275,7 +276,7 @@ class Decoder(tf.keras.Model):
 @tf.keras.utils.register_keras_serializable()
 class AutoEncoder(tf.keras.Model):
   """Combines the encoder and decoder into an end-to-end model for training."""
-  def __init__(self, custom_input_shape=(-1, 224, 224, 3), ae_flavour="vanilla", enc_net="vgg", latent_dim=128):
+  def __init__(self, custom_input_shape=(-1, 224, 224, 3), ae_flavour="vanilla", enc_net="vgg", latent_dim=16):
     super(AutoEncoder, self).__init__(name = "V" + ae_flavour.lower()[1:] + "AutoEncoder")
     self.custom_input_shape = custom_input_shape[1:]
     self._input_shape = self.custom_input_shape
@@ -411,7 +412,7 @@ if __name__ == "__main__":
     saved_model_files = utils.model_sort(saved_model_files)
     if len(saved_model_files) == 0:
         resume_epoch = 0
-        autoencoder_model = AutoEncoder(custom_input_shape=tuple([-1] + list(input_shape)), ae_flavour=autoencoder_flavour, enc_net=encoder_cnn)
+        autoencoder_model = AutoEncoder(custom_input_shape=tuple([-1] + list(input_shape)), ae_flavour=autoencoder_flavour, enc_net=encoder_cnn, latent_dim=latent_dim)
         logger.info("Starting Training phase")
     else:
         latest_model = os.path.join(checkpoint_path, saved_model_files[-1])

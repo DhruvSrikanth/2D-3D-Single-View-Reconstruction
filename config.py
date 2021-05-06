@@ -41,9 +41,9 @@ import os
 # VOXEL_SAVE_PATH       = ""
 
 # VM
-TAXONOMY_FILE_PATH      = '/home/drs/3D_Project/src/ShapeNet_original.json'
-RENDERING_PATH          = '/home/drs/3D_Project/datasets/ShapeNet/ShapeNetRendering/{}/{}/rendering'
-VOXEL_PATH              = '/home/drs/3D_Project/datasets/ShapeNet/ShapeNetVox32/{}/{}/model.binvox'
+# TAXONOMY_FILE_PATH      = '/home/drs/3D_Project/src/ShapeNet_original.json'
+# RENDERING_PATH          = '/home/drs/3D_Project/datasets/ShapeNet/ShapeNetRendering/{}/{}/rendering'
+# VOXEL_PATH              = '/home/drs/3D_Project/datasets/ShapeNet/ShapeNetVox32/{}/{}/model.binvox'
 
 
 # ----------------------------------------------Training Configuration------------------------------------------------ #
@@ -57,6 +57,7 @@ learning_rate = 0.001 # Learning rate
 boundaries = [150] # Boundary epoch for learning rate scheduler
 model_save_frequency = 5 #10 # Save model every n epochs (specify n)
 checkpoint_path = os.path.join(os.getcwd(), 'saved_models') # Model save path
+latent_dim = 16
 
 restrict_dataset = False
 restriction_size = 1000
