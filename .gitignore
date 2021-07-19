@@ -5,6 +5,8 @@ venv_3DR/
 docs/
 src/
 Results/
+.idea/
+*.idea
 *.log
 *.zip
 *.csv
