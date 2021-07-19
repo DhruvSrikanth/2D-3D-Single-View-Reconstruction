@@ -1,10 +1,133 @@
 # ----------------------------------------------Import required Modules----------------------------------------------- #
 import tensorflow as tf
-from tensorflow.keras.applications import VGG16, ResNet50, DenseNet121
+from tensorflow.keras.initializers import glorot_uniform
+from tensorflow.keras.layers import Input, Add, Dense, Activation, ZeroPadding2D, BatchNormalization, Flatten, Conv2D, \
+    Conv2DTranspose, Conv3D, Conv3DTranspose, AveragePooling2D, MaxPooling2D, GlobalMaxPooling2D
 from tensorflow.keras.initializers import glorot_uniform
 
 
-# ----------------------------------------------Define Model---------------------------------------------------------- #
+# ----------------------------------------------Define ResNet50Kern Model--------------------------------------------- #
+
+def factored_conv33(X, f, filters, name, s=1):
+    # 3x3 conv is represented as 1x3 followed by 3x1 conv
+    X = Conv2D(filters, kernel_size=(1, f), strides=(s, 1), kernel_initializer=glorot_uniform(seed=0), padding='same',
+               name=name + '_1')(X)
+    X = Conv2D(filters, kernel_size=(f, 1), strides=(1, s), kernel_initializer=glorot_uniform(seed=0), padding='same',
+               name=name + '_2')(X)
+    return X
+
+
+def identity_block(X, f, filters, stage, block, s=2):
+    # defining name basis
+    conv_name_base = 'res' + str(stage) + block + '_branch'
+    bn_name_base = 'bn' + str(stage) + block + '_branch'
+
+    # Retrieve Filters
+    F1, F2, F3 = filters
+
+    # Save the input value. You'll need this later to add back to the main path.
+    X_shortcut = X
+
+    # First component of main path
+    X = Conv2D(filters=F1, kernel_size=(1, 1), strides=(1, 1), padding='valid', name=conv_name_base + '2a',
+               kernel_initializer=glorot_uniform(seed=0))(X)
+    X = BatchNormalization(axis=3, name=bn_name_base + '2a')(X)
+    X = Activation('relu')(X)
+
+    # Second component of main path (≈3 lines)
+    X = factored_conv33(X, f, filters=F2, name=conv_name_base + '2b', s=1)
+    # X = Conv2D(filters = F2, kernel_size = (f, f), strides = (1,1), padding = 'same', name = conv_name_base + '2b', kernel_initializer = glorot_uniform(seed=0))(X)
+    X = BatchNormalization(axis=3, name=bn_name_base + '2b')(X)
+    X = Activation('relu')(X)
+
+    # Third component of main path (≈2 lines)
+    X = Conv2D(filters=F3, kernel_size=(1, 1), strides=(1, 1), padding='valid', name=conv_name_base + '2c',
+               kernel_initializer=glorot_uniform(seed=0))(X)
+    X = BatchNormalization(axis=3, name=bn_name_base + '2c')(X)
+
+    # Final step: Add shortcut value to main path, and pass it through a RELU activation (≈2 lines)
+    X = Add()([X, X_shortcut])
+    X = Activation('relu')(X)
+
+    return X
+
+
+def convolutional_block(X, f, filters, stage, block, s=2):
+    # defining name basis
+    conv_name_base = 'res' + str(stage) + block + '_branch'
+    bn_name_base = 'bn' + str(stage) + block + '_branch'
+
+    # Retrieve Filters
+    F1, F2, F3 = filters
+
+    # Save the input value
+    X_shortcut = X
+
+    ##### MAIN PATH #####
+    # First component of main path
+    X = Conv2D(F1, (1, 1), strides=(s, s), name=conv_name_base + '2a', kernel_initializer=glorot_uniform(seed=0))(X)
+    X = BatchNormalization(axis=3, name=bn_name_base + '2a')(X)
+    X = Activation('relu')(X)
+
+    # Second component of main path (≈3 lines)
+    X = factored_conv33(X, f, filters=F2, name=conv_name_base + '2b', s=1)
+    # X = Conv2D(filters = F2, kernel_size = (f, f), strides = (1,1), padding = 'same', name = conv_name_base + '2b', kernel_initializer = glorot_uniform(seed=0))(X)
+    X = BatchNormalization(axis=3, name=bn_name_base + '2b')(X)
+    X = Activation('relu')(X)
+
+    # Third component of main path (≈2 lines)
+    X = Conv2D(filters=F3, kernel_size=(1, 1), strides=(1, 1), padding='valid', name=conv_name_base + '2c',
+               kernel_initializer=glorot_uniform(seed=0))(X)
+    X = BatchNormalization(axis=3, name=bn_name_base + '2c')(X)
+
+    ##### SHORTCUT PATH #### (≈2 lines)
+    X_shortcut = Conv2D(filters=F3, kernel_size=(1, 1), strides=(s, s), padding='valid', name=conv_name_base + '1',
+                        kernel_initializer=glorot_uniform(seed=0))(X_shortcut)
+    X_shortcut = BatchNormalization(axis=3, name=bn_name_base + '1')(X_shortcut)
+
+    # Final step: Add shortcut value to main path, and pass it through a RELU activation (≈2 lines)
+    X = Add()([X, X_shortcut])
+    X = Activation('relu')(X)
+
+    return X
+
+
+def ResNet50Kern(X_input, input_shape=(224, 224, 3)):
+    # Define the input as a tensor with shape input_shape
+    # X_input = Input(input_shape)
+
+    # zero padding
+    X = ZeroPadding2D((3, 3))(X_input)
+
+    # Stage 1 (observations mentioned in the end)
+    X = Conv2D(64, (7, 7), strides=(2, 2), name='conv1', kernel_initializer=glorot_uniform(seed=0))(X)
+    # X = factored_conv33(X_input, 7, 64, name='conv1a', s=2)
+    # X = factored_conv33(X, 3, 64, name='conv1b', s=1)
+    # X = factored_conv33(X, 3, 64, name='conv1c', s=1)
+
+    X = BatchNormalization(axis=3, name='bn_conv1')(X)
+    X = Activation('relu')(X)
+    X = MaxPooling2D((3, 3), strides=(2, 2))(X)
+
+    # Stage 2
+    X = convolutional_block(X, f=3, filters=[64, 64, 256], stage=2, block='a', s=1)
+    X = identity_block(X, 3, [64, 64, 256], stage=2, block='b')
+    X = identity_block(X, 3, [64, 64, 256], stage=2, block='c')
+
+    # # ### START CODE HERE ###
+
+    # # Stage 3 (≈4 lines)
+    X = convolutional_block(X, f=3, filters=[128, 128, 512], stage=3, block='a', s=2)
+
+    return X
+
+
+# Obsevations
+# without kernel splitting (3 and 7) total parameters are ~613k
+# with complete kernel splitting (7 reduced to 1x3 and 3x1, same with 3) total params are ~597k
+# with onlu 3x3 kernel splitting total params are ~527k
+
+# ----------------------------------------------Define Autoencoder Resnet50 Kernel Model---------------------------------------------------------- #
 
 # Build complete autoencoder model
 def build_autoencoder(input_shape=(224, 224, 3), describe=False):
@@ -34,8 +157,11 @@ def build_autoencoder(input_shape=(224, 224, 3), describe=False):
         X = tf.keras.activations.elu(X)
         print('main path (post 1st conv) shape = ', X.shape)
 
-        X = tf.keras.layers.Conv2D(filters=F2, kernel_size=(f, f), strides=(1, 1), padding='valid',
-                                   kernel_initializer=glorot_uniform(seed=0), name=conv_name_base + '2a')(
+        X = tf.keras.layers.Conv2D(filters=F2, kernel_size=(1, f), strides=(1, 1), padding='valid',
+                                   kernel_initializer=glorot_uniform(seed=0), name=conv_name_base + '2a_1')(
+            X)  # for pix2vox-A(large), filters is 512
+        X = tf.keras.layers.Conv2D(filters=F2, kernel_size=(f, 1), strides=(1, 1), padding='valid',
+                                   kernel_initializer=glorot_uniform(seed=0), name=conv_name_base + '2a_2')(
             X)  # for pix2vox-A(large), filters is 512
         X = tf.keras.layers.BatchNormalization(name=bn_name_base + '2a')(X)
         X = tf.keras.activations.elu(X)
@@ -43,14 +169,19 @@ def build_autoencoder(input_shape=(224, 224, 3), describe=False):
             X)  # for pix2vox-A(large), kernel size is 3
         print('main path (post 2nd conv) shape = ', X.shape)
 
-        X = tf.keras.layers.Conv2D(filters=F3, kernel_size=(f, f), strides=(1, 1), padding='valid',
-                                   kernel_initializer=glorot_uniform(seed=0), name=conv_name_base + '3a')(
+        X = tf.keras.layers.Conv2D(filters=F3, kernel_size=(1, f), strides=(1, 1), padding='valid',
+                                   kernel_initializer=glorot_uniform(seed=0), name=conv_name_base + '3a_1')(X)
+        X = tf.keras.layers.Conv2D(filters=F3, kernel_size=(f, 1), strides=(1, 1), padding='valid',
+                                   kernel_initializer=glorot_uniform(seed=0), name=conv_name_base + '3a_2')(
             X)  # for pix2vox-A(large), filters is 256, kernel_size is 1
         X = tf.keras.layers.BatchNormalization(name=bn_name_base + '3a')(X)
         print('main path (post 3rd conv) shape = ', X.shape)
 
-        X_shortcut = tf.keras.layers.Conv2D(filters=F3, kernel_size=(f, f), strides=(s + 6, s + 6), padding='same',
-                                            kernel_initializer=glorot_uniform(seed=0), name=conv_name_base + '1b')(
+        X_shortcut = tf.keras.layers.Conv2D(filters=F3, kernel_size=(1, f), strides=(s + 6, s + 6), padding='valid',
+                                            kernel_initializer=glorot_uniform(seed=0), name=conv_name_base + '1b_1')(
+            X_shortcut)  # for pix2vox-A(large), filters is 256, kernel_size is 1
+        X_shortcut = tf.keras.layers.Conv2D(filters=F3, kernel_size=(f, 1), strides=(s + 6, s + 6), padding='valid',
+                                            kernel_initializer=glorot_uniform(seed=0), name=conv_name_base + '1b_2')(
             X_shortcut)  # for pix2vox-A(large), filters is 256, kernel_size is 1
         X_shortcut = tf.keras.layers.BatchNormalization(name=bn_name_base + '1b')(X_shortcut)
         print('shortcut  (post 1st conv) shape = ', X_shortcut.shape)
@@ -68,11 +199,11 @@ def build_autoencoder(input_shape=(224, 224, 3), describe=False):
         :return: Pre Trained Model
         '''
 
-        cnn_model = ResNet50(include_top=False, weights="imagenet", input_shape=input_shape, pooling="none")
+        cnn_model = tf.keras.Model(input, ResNet50Kern(input), name="resnet_kr")
+        # cnn_model = ResNet50(include_top = False, weights = "imagenet", input_shape = input_shape, pooling = "none")
         cnn_model.trainable = False
-        pre_trained = tf.keras.models.Model(inputs=cnn_model.input,
-                                            outputs=cnn_model.get_layer(name="conv3_block1_out").output, name="resnet")
-
+        # pre_trained = tf.keras.models.Model(inputs = cnn_model.input, outputs = cnn_model.get_layer(name="conv3_block1_out").output, name = "resnet")
+        pre_trained = cnn_model
         # https://keras.io/guides/transfer_learning/
         x = pre_trained(inputs=inp, training=False)
         # print(pre_trained.summary())
@@ -119,7 +250,7 @@ def build_autoencoder(input_shape=(224, 224, 3), describe=False):
         print('main path (post 2nd conv) shape = ', X.shape)
 
         X_shortcut = tf.keras.layers.Convolution3DTranspose(filters=F2, kernel_size=(f, f, f),
-                                                            strides=(s + 2, s + 2, s + 2), padding='same',
+                                                            strides=(s + 2, s + 2, s + 2), padding='valid',
                                                             kernel_initializer=glorot_uniform(seed=0), use_bias=False,
                                                             name=deconv_name_base + '1b')(X_shortcut)
         X_shortcut = tf.keras.layers.BatchNormalization(name=bn_name_base + '1b')(X_shortcut)
@@ -186,4 +317,3 @@ def build_autoencoder(input_shape=(224, 224, 3), describe=False):
 
 # autoencoder_model = build_autoencoder()
 # print(autoencoder_model.summary())
-#
