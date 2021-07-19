@@ -3,6 +3,8 @@ logs/
 saved_models/
 venv_3DR/
 docs/
+src/
+Results/
 *.log
 *.zip
 *.csv
