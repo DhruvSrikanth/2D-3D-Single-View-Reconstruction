@@ -19,6 +19,8 @@ Our paper that has been published based on the approaches established in this re
 <br>
 
 <H3> Aknowledgements </H3>
+
+---
   
 <br>
   
@@ -29,6 +31,8 @@ We, **Dhruv Srikanth**, **Suraj Bidnur** and **Rishab Kumar** would like to than
 <br>
 
 <H3> Objective </H3> 
+
+---
   
 <br>
   
@@ -40,6 +44,8 @@ We aim to reconstruct 3D voxel models from their 2D images using deep learning a
 
 <H3> Inspiration </H3> 
 
+---
+  
 <br>
   
 The **Pix2Vox model** and **3D-R2N2** architectures provided us with inspiration. We based original based our approach off of a similar model and then made alteration from that point onwards for single view image reconstruction without any data augmentation. The papers for the **Pix2Vox** and **3D-R2N2** architectures can be found below - 
@@ -52,6 +58,8 @@ The **Pix2Vox model** and **3D-R2N2** architectures provided us with inspiration
 ---
 
 <H3> Motivation </H3>  
+
+---
   
 <br>
   
@@ -64,6 +72,8 @@ The **Pix2Vox model** and **3D-R2N2** architectures provided us with inspiration
 ---
   
 <H3> Dataset </H3>
+
+---
   
 <br>
   
@@ -79,6 +89,8 @@ The dataset contains 13 different object classes with over 700,000 images.
 ---
 
 <H3> Metrics </H3>
+
+---
   
 <br>
   
@@ -91,6 +103,8 @@ The dataset contains 13 different object classes with over 700,000 images.
 
 
 <H3> Training Configuration </H3>  
+
+---
   
 <br>
   
@@ -105,6 +119,8 @@ The dataset contains 13 different object classes with over 700,000 images.
 ---
 
 <H3> Hardware Configuration </H3>  
+
+---
   
 <br>
   
@@ -117,6 +133,8 @@ The dataset contains 13 different object classes with over 700,000 images.
 ---
 
 <H3> Software Configuration </H3>  
+
+---
   
 <br>
   
@@ -130,6 +148,8 @@ The dataset contains 13 different object classes with over 700,000 images.
 ---
 
 <H3> Training Results </H3>  
+
+---
   
 <br>
   
@@ -150,6 +170,8 @@ Given below are the **mean IoUs** for each of the following models that are stat
 ---
 
 <H3> Research Paper </H3>  
+
+---
   
 <br>
   
@@ -162,6 +184,8 @@ Our paper that has been published based on the approaches established in this re
 ---
 
 <H3> Takeaways </H3>  
+
+---
   
 <br>
   
