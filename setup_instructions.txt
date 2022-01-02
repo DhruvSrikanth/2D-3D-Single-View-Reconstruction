@@ -4,7 +4,7 @@ Setting up the project
 2. Run "init_config.sh" script. This will download the dataset and extract it. It will also setup the basic directory structure
 
 CUDA Installation (if not installed) v11.0
-1. Run "install_cude.sh" script to perform a frsh install of CUDA 11.0. Comment lines 12-16 if you do not want to remove existing installation of CUDA.
+1. Run "install_cuda.sh" script to perform a frsh install of CUDA 11.0. Comment lines 12-16 if you do not want to remove existing installation of CUDA.
 
 cuDNN installation (if not installed) v8.0.4
 1. Register on NVIDIA depeveloper program https://developer.nvidia.com/developer-program/signup
@@ -17,5 +17,26 @@ Python setup
 3. This will create a python virtual environment called "3dr_venv".
 4. After this it will install all the necessary modules required to run the program.
 
-Selecting the model and running the program
+Selecting the model and running the program (update this)
 1.
+
+Project file short descriptions
+1. binvox_rw.py: read and write binvox files
+2. binvox_viz.py: visualize binvox files
+3. config.py: contains configuration details like dataset path and model training configuration information
+4. data.py: model data generator
+5. inference.py: run inference on the model
+6. init_config.sh: sets up the file dierectory and downloads and extracts the dataset
+7. install_cuda.sh: download and install CUDA v11.0
+8. install_cuDNN.sh: download and install cuDNN v8.0.4
+9. logger.py: datalogger setup
+10. metrics.py: metrics used for the deep learning model
+11. model.py: the deep learning model
+12. py_package_venv_setup.sh: setup python environment and get required packages
+13. requirements.txt: list of python modules used
+14. save_data.py: save Loss/IoU values to csv file
+15. saveiou.py: save Loss/IoU values to csv file
+16. setup_instructions.txt: intsructions for project setup
+17. ShapeNet_original.json: json file required for dataset
+18. train.py: train model
+19. utils.py: utility functions
