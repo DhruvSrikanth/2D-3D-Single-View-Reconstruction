@@ -1,11 +1,8 @@
 # RUN ONLY ONCE FOR SETUP
 
-# Create a folder containing the 2 dataset tgz files and this shell script.
-# Then run the shell script by typing ./init_config.sh or source init_config.sh
+# Run the shell script by typing ./init_config.sh or source init_config.sh
 # The script will create the dataset folders, download the dataset and extract the tgz files to those folders
 # It will then create src folder and git clone the master brance of the repo (needs git username and pwd at this stage)
-# Next it will call install.sh script which will install CUDA and cuDNN (the zip file of cuDNN must be downloaded already)
-# After this is done, it will create a python virtual env, activate it and run pip on reqirements.txt to install modules
 
 INIT_DIR="$(pwd)"
 echo "$INIT_DIR"
@@ -41,11 +38,11 @@ echo "Src code directory doesn't exist. Creating now"
 mkdir -p "$SRC_DIR"
 echo "Directory created"
 
-ch_dir "$SRC_DIR"
-echo "Cloning GitHub repository"
-git clone "https://github.com/DhruvSrikanth/3D-Reconstruction.git"
+# ch_dir "$SRC_DIR"
+# echo "Cloning GitHub repository"
+# git clone "https://github.com/DhruvSrikanth/3D-Reconstruction.git"
 
-ch_dir ..
+# ch_dir ..
 sudo mv {"src/${GIT_DIR}"/*,"src/${GIT_DIR}"/.*} "src/"
 rmdir "$GIT_DIR"
 
