@@ -1,4 +1,4 @@
-# Run only ONCE for SETUP
+# RUN ONLY ONCE FOR SETUP
 
 # Create a folder containing the 2 dataset tgz files and this shell script.
 # Then run the shell script by typing ./init_config.sh or source init_config.sh
@@ -24,39 +24,26 @@ ch_dir () {
   cd $dir_path
 }
 
-if [ ! -d "$DATASET_DIR" ]
-then
-  echo "Dataset directory doesn't exist. Creating now"
-  mkdir -p "$DATASET_DIR"
-  echo "Directory created"
+echo "Dataset directory doesn't exist. Creating now"
+mkdir -p "$DATASET_DIR"
+echo "Directory created"
 
-  # tar -xvzf "$ARG1" -C $DATASET_DIR
-  tar -xvzf "$RENDER_DS_FILE" -C $DATASET_DIR
-  tar -xvzf "$VOXEL_DS_FILE" -C $DATASET_DIR
-  # rm *.tgz
-else
-  echo "Directory exists"
-fi
+# tar -xvzf "$ARG1" -C $DATASET_DIR
+tar -xvzf "$RENDER_DS_FILE" -C $DATASET_DIR
+tar -xvzf "$VOXEL_DS_FILE" -C $DATASET_DIR
+# rm *.tgz
 
-if [ ! -d "$SRC_DIR" ]
-then
-  echo "Src code directory doesn't exist. Creating now"
-  mkdir -p "$SRC_DIR"
-  echo "Directory created"
+echo "Src code directory doesn't exist. Creating now"
+mkdir -p "$SRC_DIR"
+echo "Directory created"
 
-  ch_dir "$SRC_DIR"
-  echo "Cloning GitHub repository"
-  git clone "https://github.com/DhruvSrikanth/3D-Reconstruction.git"
+ch_dir "$SRC_DIR"
+echo "Cloning GitHub repository"
+git clone "https://github.com/DhruvSrikanth/3D-Reconstruction.git"
 
-  ch_dir ..
-  sudo mv {"src/${GIT_DIR}"/*,"src/${GIT_DIR}"/.*} "src/"
-  rmdir "$GIT_DIR"
-
-  echo "Starting install of CUDA 11.0"
-  source src/install_cuda.sh
-else
-  echo "Directory exists"
-fi
+ch_dir ..
+sudo mv {"src/${GIT_DIR}"/*,"src/${GIT_DIR}"/.*} "src/"
+rmdir "$GIT_DIR"
 
 echo "Done"
 exit
