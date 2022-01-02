@@ -50,7 +50,7 @@ The dataset contains 13 different object classes with over 700,000 images.
 
 ---
 
-<H3> Some heading here (update this) </H3>
+<H3> Proposed models </H3>
 
 Here we propose 2 models for use in different scenarios.
 1. AE-Dense: This model gives the best results (highest IoU) but it comes at the cost of a much higher GPU memory utilization (close to 9GB). In situations where there is no limitation on the GPU memory, then this model can be used.
@@ -58,8 +58,8 @@ Here we propose 2 models for use in different scenarios.
 
 ---
 
-<H3> How to run the models (Update this) </H3>
-Add details here
+<H3> Project setup and running </H3>
+All the details needed to setup and get the project running are given in the "setup_instructions.txt" file.
 
 ---
 
