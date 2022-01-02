@@ -1,0 +1,21 @@
+Setting up the project
+
+1. Clone the repo
+2. Run "init_config.sh" script. This will download the dataset and extract it. It will also setup the basic directory structure
+
+CUDA Installation (if not installed) v11.0
+1. Run "install_cude.sh" script to perform a frsh install of CUDA 11.0. Comment lines 12-16 if you do not want to remove existing installation of CUDA.
+
+cuDNN installation (if not installed) v8.0.4
+1. Register on NVIDIA depeveloper program https://developer.nvidia.com/developer-program/signup
+2. Download cuDNN v8.0.4.30 from https://developer.nvidia.com/cudnn
+3. Run the "install_cuDNN.sh" script after copying the cuDNN zip file to the folder containing the "install_cuDNN.sh" script.
+
+Python setup
+1. Ensure your python version is anything between 3.6 and 3.8
+2. Run "py_package_venv_setup.sh" script.
+3. This will create a python virtual environment called "3dr_venv".
+4. After this it will install all the necessary modules required to run the program.
+
+Selecting the model and running the program
+1.
