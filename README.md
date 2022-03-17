@@ -1,12 +1,12 @@
-<H1> Resource-Conscious High-Performance Models for 2D-to-3D Single View Reconstruction
+<H1> Resource-Conscious High-Performance Models for 2D-to-3D Single View Reconstruction </H1>
   
 ---
   
 <H2> Capstone Project, Research Work and Research Paper </H2>
   
-Our paper that has been published based on the approaches established in this repository can be found here - 
+Our work has been presented and published in the IEEE-TENCON 2021 conference held in Auckland, New Zealand. This paper can be viewed and referenced using the IEEE-Xplore link provided below - 
 
-[Resource-Conscious High-Performance Models for 2D-to-3D Single View Reconstruction (Link needs to be updated once IEEE releases paper link)](https://arxiv.org/abs/1901.11153)
+[Resource-Conscious High-Performance Models for 2D-to-3D Single View Reconstruction](https://ieeexplore.ieee.org/document/9707193)
 
 ---
 
@@ -41,10 +41,10 @@ The **Pix2Vox model** and **3D-R2N2** architectures provided us with inspiration
 
 <H3> Dataset </H3>
   
-The dataset we have trained our models on is the 3D [ShapeNet](https://shapenet.org) dataset. The links to the 2D rendering files and the 3D binvox files are mentioned below.  
+The dataset we have trained our models on is the [3D-ShapeNet](https://shapenet.org) dataset. The links to the 2D rendering files and the 3D binvox files are mentioned below.  
 
-1. ShapeNet Rendering: <http://cvgl.stanford.edu/data2/ShapeNetRendering.tgz>
-2. ShapeNet Binvox: <http://cvgl.stanford.edu/data2/ShapeNetVox32.tgz> 
+1. [ShapeNet Rendering](<http://cvgl.stanford.edu/data2/ShapeNetRendering.tgz>)
+2. [ShapeNet Binvox](<http://cvgl.stanford.edu/data2/ShapeNetVox32.tgz>) 
 
 The dataset contains 13 different object classes with over 700,000 images.
 
@@ -53,18 +53,13 @@ The dataset contains 13 different object classes with over 700,000 images.
 <H3> Proposed models </H3>
 
 Here we propose 2 models for use in different scenarios.
-1. AE-Dense: This model gives the best results (highest IoU) but it comes at the cost of a much higher GPU memory utilization (close to 9GB). In situations where there is no limitation on the GPU memory, then this model can be used.
-2. 3D-SkipNet: This model performs slightly worse than AE-Dense but it uses around **2GB** less GPU memory (close to 7GB). In situations where GPU memory availability is critical, this model can be used.
+1. **AE-Dense:** This model gives the **best results (highest IoU)** but it comes at the cost of a much higher GPU memory utilization (close to 9GB). In situations where there is no limitation on the GPU memory, then this model can be used.
+2. **3D-SkipNet:** This model performs slightly worse than AE-Dense but it uses around **2GB** less GPU memory (close to 7GB). In situations where GPU memory availability is critical, this model can be used.
 
 ---
 
 <H3> Project setup and running </H3>
 All the details needed to setup and get the project running are given in the "setup_instructions.txt" file.
-
----
-
-<H3> Info about model files (Update this) </H3>
-Add 1 line descriptions about the model files here for ease of reading and use
 
 ---
 
@@ -120,9 +115,9 @@ Given below are the **mean IoUs** for each of the following models that are stat
 
 <H3> Research Paper </H3>
   
-Our paper that has been published based on the approaches established in this repository can be found here - 
+Our research on this topic resulted in a research paper that has been presented and published in the IEEE-TENCON 2021 conference held in Auckland, New Zealand. The paper can be viewed and referenced using the IEEE-Xplore link provided below -
 
-[Resource-Conscious High-Performance Models for 2D-to-3D Single View Reconstruction (Link needs to be updated once IEEE releases paper link)](https://arxiv.org/abs/1901.11153)
+[Resource-Conscious High-Performance Models for 2D-to-3D Single View Reconstruction](https://ieeexplore.ieee.org/document/9707193)
 
 ---
 
